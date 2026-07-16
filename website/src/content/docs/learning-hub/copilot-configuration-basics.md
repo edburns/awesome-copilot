@@ -3,7 +3,7 @@ title: 'Copilot Configuration Basics'
 description: 'Learn how to configure GitHub Copilot at user, workspace, and repository levels to optimize your AI-assisted development experience.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
+lastUpdated: 2026-07-16
 estimatedReadingTime: '10 minutes'
 tags:
   - configuration
@@ -541,11 +541,17 @@ The `/cd` command changes the working directory for the current session. Since v
 
 This is useful when you have multiple backgrounded sessions each focused on a different project directory.
 
-The `/worktree` command (v1.0.61+, also aliased `/move`) creates a new git worktree and switches into it, moving any uncommitted changes along. This lets you start working on a parallel branch without leaving your current terminal session:
+The `/worktree` command (v1.0.61+) creates a new git worktree and switches into it. In **v1.0.71+**, `/worktree` and `/move` are two distinct commands with different behavior for uncommitted changes:
+
+- **`/worktree`** creates a new worktree and **leaves your uncommitted changes behind** in the current worktree — useful when you want a clean branch while keeping in-progress work separate.
+- **`/move`** creates a new worktree and **carries your uncommitted changes into it** — useful when you want to continue your current work on a new branch.
 
 ```
-/worktree my-feature-branch
+/worktree my-feature-branch   # clean worktree; uncommitted changes stay in current worktree
+/move my-feature-branch       # carries uncommitted changes into the new worktree
 ```
+
+> **Note**: Prior to v1.0.71, `/move` was an alias for `/worktree` and both moved uncommitted changes into the new worktree. The commands were split to give you explicit control over what happens to in-progress work.
 
 In v1.0.66+, you can pass a task description to `/worktree` to name the branch from the task and immediately run the task as the first prompt in the new worktree — all in one step:
 
@@ -743,6 +749,8 @@ copilot --plan          # start in plan mode (propose without executing)
 ```
 
 This is useful in scripts or CI pipelines where you want the CLI to immediately begin working in a specific mode without an interactive prompt.
+
+> **Plan mode enforcement (v1.0.71+)**: In v1.0.71+, plan mode **hard-blocks** any built-in tool call that would modify the workspace. This means the agent cannot edit files, run mutating shell commands, or open pull requests while in plan mode — these actions are blocked at the tool level, not just the prompt level. MCP tools and external tools remain allowed. This makes plan mode a reliable read-only planning phase before you switch to agent or autopilot mode to execute.
 
 The `--max-autopilot-continues` flag controls how many times Copilot can automatically continue in autopilot mode before pausing for confirmation. The default is 5:
 
