@@ -1,6 +1,5 @@
 ---
 import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
-import Modal from "../components/Modal.astro";
 import Icon from "../components/Icon.astro";
 import BackToTop from "../components/BackToTop.astro";
 
@@ -39,6 +38,11 @@ const base = import.meta.env.BASE_URL;
         <p class="hero-subtitle">
           Community-contributed agents, instructions, and skills to enhance your
           GitHub Copilot experience
+        </p>
+        <p>
+          <a href="https://github.com/github/awesome-copilot/" target="_blank" rel="noopener noreferrer">
+            View the Awesome Copilot repository on GitHub
+          </a>
         </p>
       </div>
     </section>
@@ -112,44 +116,6 @@ const base = import.meta.env.BASE_URL;
             </div>
           </a>
           <a
-            href={`${base}hooks/`}
-            class="card card-with-count card-category-automation"
-            id="card-hooks"
-            style="--animation-delay: 150ms;"
-          >
-            <div class="card-icon" aria-hidden="true">
-              <Icon name="hook" size={40} />
-            </div>
-            <div class="card-content">
-              <h3>Hooks</h3>
-              <p>Automated workflows triggered by agent events</p>
-            </div>
-            <div class="card-count" data-count="hooks" aria-label="Hook count">
-              -
-            </div>
-          </a>
-          <a
-            href={`${base}workflows/`}
-            class="card card-with-count card-category-automation"
-            id="card-workflows"
-            style="--animation-delay: 200ms;"
-          >
-            <div class="card-icon" aria-hidden="true">
-              <Icon name="workflow" size={40} />
-            </div>
-            <div class="card-content">
-              <h3>Workflows</h3>
-              <p>AI-powered automations for GitHub Actions</p>
-            </div>
-            <div
-              class="card-count"
-              data-count="workflows"
-              aria-label="Workflow count"
-            >
-              -
-            </div>
-          </a>
-          <a
             href={`${base}plugins/`}
             class="card card-with-count card-category-extension"
             id="card-plugins"
@@ -171,19 +137,23 @@ const base = import.meta.env.BASE_URL;
             </div>
           </a>
           <a
-            href={`${base}tools/`}
-            class="card card-with-count card-category-dev"
-            id="card-tools"
+            href={`${base}extensions/`}
+            class="card card-with-count card-category-extension"
+            id="card-extensions"
             style="--animation-delay: 300ms;"
           >
             <div class="card-icon" aria-hidden="true">
-              <Icon name="wrench" size={40} />
+              <Icon name="plug" size={40} />
             </div>
             <div class="card-content">
-              <h3>Tools</h3>
-              <p>MCP servers and developer tools</p>
+              <h3>Canvas Extensions</h3>
+              <p>Interactive canvas extensions for Copilot app experiences</p>
             </div>
-            <div class="card-count" data-count="tools" aria-label="Tool count">
+            <div
+              class="card-count"
+              data-count="extensions"
+              aria-label="Extension count"
+            >
               -
             </div>
           </a>
@@ -191,7 +161,7 @@ const base = import.meta.env.BASE_URL;
             href={`${base}learning-hub/`}
             class="card card-with-count card-category-learn"
             id="card-learning-hub"
-            style="--animation-delay: 350ms;"
+            style="--animation-delay: 400ms;"
           >
             <div class="card-icon" aria-hidden="true">
               <Icon name="book" size={40} />
@@ -205,8 +175,6 @@ const base = import.meta.env.BASE_URL;
       </div>
     </section>
   </div>
-
-  <Modal />
 
   <!-- Back to Top Button -->
   <BackToTop />

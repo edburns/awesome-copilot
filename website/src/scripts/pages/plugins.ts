@@ -2,18 +2,12 @@
  * Plugins page functionality
  */
 import {
-  createChoices,
-  getChoicesValues,
-  setChoicesValues,
-  type Choices,
-} from '../choices';
-import {
   fetchData,
   getQueryParam,
   getQueryParamValues,
   updateQueryParams,
 } from '../utils';
-import { setupModal, openFileModal } from '../modal';
+import { clearSelectValues, getSelectValues, setSelectValues } from './select-utils';
 import {
   renderPluginsHtml,
   sortPlugins,
@@ -32,12 +26,18 @@ interface PluginSource {
   path?: string;
 }
 
+interface PluginItem {
+  kind: string;
+  path: string;
+}
+
 interface Plugin extends RenderablePlugin {
   id: string;
   name: string;
   path: string;
   tags?: string[];
   itemCount: number;
+  items?: PluginItem[];
   external?: boolean;
   repository?: string | null;
   homepage?: string | null;
@@ -53,14 +53,12 @@ interface PluginsData {
   };
 }
 
-const resourceType = 'plugin';
 let allItems: Plugin[] = [];
-let tagSelect: Choices;
+let tagSelectEl: HTMLSelectElement | null = null;
 let currentSort: PluginSortOption = 'title';
 let currentFilters = {
   tags: [] as string[],
 };
-let resourceListHandlersReady = false;
 
 function sortItems(items: Plugin[]): Plugin[] {
   return sortPlugins(items, currentSort);
@@ -79,7 +77,7 @@ function applyFiltersAndRender(): void {
   let results = [...allItems];
 
   if (currentFilters.tags.length > 0) {
-    results = results.filter(item => item.tags?.some(tag => currentFilters.tags.includes(tag)));
+    results = results.filter((item) => item.tags?.some((tag) => currentFilters.tags.includes(tag)));
   }
 
   results = sortItems(results);
@@ -95,25 +93,6 @@ function renderItems(items: Plugin[]): void {
   list.innerHTML = renderPluginsHtml(items);
 }
 
-function setupResourceListHandlers(list: HTMLElement | null): void {
-  if (!list || resourceListHandlersReady) return;
-
-  list.addEventListener('click', (event) => {
-    const target = event.target as HTMLElement;
-    if (target.closest('.resource-actions')) {
-      return;
-    }
-
-    const item = target.closest('.resource-item') as HTMLElement | null;
-    const path = item?.dataset.path;
-    if (path) {
-      openFileModal(path, resourceType);
-    }
-  });
-
-  resourceListHandlersReady = true;
-}
-
 function syncUrlState(): void {
   updateQueryParams({
     q: '',
@@ -125,9 +104,7 @@ function syncUrlState(): void {
 export async function initPluginsPage(): Promise<void> {
   const list = document.getElementById('resource-list');
   const clearFiltersBtn = document.getElementById('clear-filters');
-  const sortSelect = document.getElementById('sort-select') as HTMLSelectElement;
-
-  setupResourceListHandlers(list as HTMLElement | null);
+  const sortSelect = document.getElementById('sort-select') as HTMLSelectElement | null;
 
   const data = await fetchData<PluginsData>('plugins.json');
   if (!data || !data.items) {
@@ -137,19 +114,27 @@ export async function initPluginsPage(): Promise<void> {
 
   allItems = data.items;
 
-  tagSelect = createChoices('#filter-tag', { placeholderValue: 'All Tags' });
-  tagSelect.setChoices(data.filters.tags.map(t => ({ value: t, label: t })), 'value', 'label', true);
+  tagSelectEl = document.getElementById('filter-tag') as HTMLSelectElement | null;
+  if (tagSelectEl) {
+    tagSelectEl.innerHTML = '';
+    data.filters.tags.forEach((tag) => {
+      const option = document.createElement('option');
+      option.value = tag;
+      option.textContent = tag;
+      tagSelectEl?.appendChild(option);
+    });
+  }
 
-  const initialTags = getQueryParamValues('tag').filter(tag => data.filters.tags.includes(tag));
+  const initialTags = getQueryParamValues('tag').filter((tag) => data.filters.tags.includes(tag));
   const initialSort = getQueryParam('sort');
 
   if (initialTags.length > 0) {
     currentFilters.tags = initialTags;
-    setChoicesValues(tagSelect, initialTags);
+    setSelectValues(tagSelectEl, initialTags);
   }
 
-  document.getElementById('filter-tag')?.addEventListener('change', () => {
-    currentFilters.tags = getChoicesValues(tagSelect);
+  tagSelectEl?.addEventListener('change', () => {
+    currentFilters.tags = getSelectValues(tagSelectEl);
     applyFiltersAndRender();
     syncUrlState();
   });
@@ -167,7 +152,7 @@ export async function initPluginsPage(): Promise<void> {
   clearFiltersBtn?.addEventListener('click', () => {
     currentFilters = { tags: [] };
     currentSort = 'title';
-    tagSelect.removeActiveItems();
+    clearSelectValues(tagSelectEl);
     if (sortSelect) sortSelect.value = 'title';
     applyFiltersAndRender();
     syncUrlState();
@@ -175,7 +160,6 @@ export async function initPluginsPage(): Promise<void> {
 
   applyFiltersAndRender();
   syncUrlState();
-  setupModal();
 }
 
 // Auto-initialize when DOM is ready

@@ -4,11 +4,10 @@
 import {
   fetchData,
   getQueryParam,
-  setupDropdownCloseHandlers,
   setupActionHandlers,
+  setupDropdownCloseHandlers,
   updateQueryParams,
 } from '../utils';
-import { setupModal, openFileModal } from '../modal';
 import {
   renderAgentsHtml,
   sortAgents,
@@ -26,7 +25,6 @@ interface AgentsData {
 
 let allItems: Agent[] = [];
 let currentSort: AgentSortOption = 'title';
-let resourceListHandlersReady = false;
 
 function applyFiltersAndRender(): void {
   const countEl = document.getElementById('results-count');
@@ -45,25 +43,6 @@ function renderItems(items: Agent[]): void {
   list.innerHTML = renderAgentsHtml(items);
 }
 
-function setupResourceListHandlers(list: HTMLElement | null): void {
-  if (!list || resourceListHandlersReady) return;
-
-  list.addEventListener('click', (event) => {
-    const target = event.target as HTMLElement;
-    if (target.closest('.resource-actions')) {
-      return;
-    }
-
-    const item = target.closest('.resource-item') as HTMLElement | null;
-    const path = item?.dataset.path;
-    if (path) {
-      openFileModal(path, 'agent');
-    }
-  });
-
-  resourceListHandlersReady = true;
-}
-
 function syncUrlState(): void {
   updateQueryParams({
     q: '',
@@ -77,8 +56,6 @@ function syncUrlState(): void {
 export async function initAgentsPage(): Promise<void> {
   const list = document.getElementById('resource-list');
   const sortSelect = document.getElementById('sort-select') as HTMLSelectElement;
-
-  setupResourceListHandlers(list as HTMLElement | null);
 
   const data = await fetchData<AgentsData>('agents.json');
   if (!data || !data.items) {
@@ -101,7 +78,6 @@ export async function initAgentsPage(): Promise<void> {
   });
 
   applyFiltersAndRender();
-  setupModal();
   setupDropdownCloseHandlers();
   setupActionHandlers();
 }

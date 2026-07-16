@@ -2,20 +2,14 @@
  * Instructions page functionality
  */
 import {
-  createChoices,
-  getChoicesValues,
-  setChoicesValues,
-  type Choices,
-} from '../choices';
-import {
   fetchData,
   getQueryParam,
   getQueryParamValues,
-  setupDropdownCloseHandlers,
   setupActionHandlers,
+  setupDropdownCloseHandlers,
   updateQueryParams,
 } from '../utils';
-import { setupModal, openFileModal } from '../modal';
+import { clearSelectValues, getSelectValues, setSelectValues } from './select-utils';
 import {
   renderInstructionsHtml,
   sortInstructions,
@@ -37,12 +31,10 @@ interface InstructionsData {
   };
 }
 
-const resourceType = 'instruction';
 let allItems: Instruction[] = [];
-let extensionSelect: Choices;
+let extensionSelectEl: HTMLSelectElement | null = null;
 let currentFilters = { extensions: [] as string[] };
 let currentSort: InstructionSortOption = 'title';
-let resourceListHandlersReady = false;
 
 function sortItems(items: Instruction[]): Instruction[] {
   return sortInstructions(items, currentSort);
@@ -53,11 +45,14 @@ function applyFiltersAndRender(): void {
   let results = [...allItems];
 
   if (currentFilters.extensions.length > 0) {
-    results = results.filter(item => {
-      if (currentFilters.extensions.includes('(none)') && (!item.extensions || item.extensions.length === 0)) {
+    results = results.filter((item) => {
+      if (
+        currentFilters.extensions.includes('(none)') &&
+        (!item.extensions || item.extensions.length === 0)
+      ) {
         return true;
       }
-      return item.extensions?.some(ext => currentFilters.extensions.includes(ext));
+      return item.extensions?.some((ext) => currentFilters.extensions.includes(ext));
     });
   }
 
@@ -78,25 +73,6 @@ function renderItems(items: Instruction[]): void {
   list.innerHTML = renderInstructionsHtml(items);
 }
 
-function setupResourceListHandlers(list: HTMLElement | null): void {
-  if (!list || resourceListHandlersReady) return;
-
-  list.addEventListener('click', (event) => {
-    const target = event.target as HTMLElement;
-    if (target.closest('.resource-actions')) {
-      return;
-    }
-
-    const item = target.closest('.resource-item') as HTMLElement | null;
-    const path = item?.dataset.path;
-    if (path) {
-      openFileModal(path, resourceType);
-    }
-  });
-
-  resourceListHandlersReady = true;
-}
-
 function syncUrlState(): void {
   updateQueryParams({
     q: '',
@@ -108,9 +84,7 @@ function syncUrlState(): void {
 export async function initInstructionsPage(): Promise<void> {
   const list = document.getElementById('resource-list');
   const clearFiltersBtn = document.getElementById('clear-filters');
-  const sortSelect = document.getElementById('sort-select') as HTMLSelectElement;
-
-  setupResourceListHandlers(list as HTMLElement | null);
+  const sortSelect = document.getElementById('sort-select') as HTMLSelectElement | null;
 
   const data = await fetchData<InstructionsData>('instructions.json');
   if (!data || !data.items) {
@@ -120,23 +94,31 @@ export async function initInstructionsPage(): Promise<void> {
 
   allItems = data.items;
 
-  extensionSelect = createChoices('#filter-extension', { placeholderValue: 'All Extensions' });
-  extensionSelect.setChoices(data.filters.extensions.map(e => ({ value: e, label: e })), 'value', 'label', true);
+  extensionSelectEl = document.getElementById('filter-extension') as HTMLSelectElement | null;
+  if (extensionSelectEl) {
+    extensionSelectEl.innerHTML = '';
+    data.filters.extensions.forEach((ext) => {
+      const option = document.createElement('option');
+      option.value = ext;
+      option.textContent = ext;
+      extensionSelectEl?.appendChild(option);
+    });
+  }
 
-  const initialExtensions = getQueryParamValues('extension').filter(extension => data.filters.extensions.includes(extension));
+  const initialExtensions = getQueryParamValues('extension').filter((extension) => data.filters.extensions.includes(extension));
   const initialSort = getQueryParam('sort');
 
   if (initialExtensions.length > 0) {
     currentFilters.extensions = initialExtensions;
-    setChoicesValues(extensionSelect, initialExtensions);
+    setSelectValues(extensionSelectEl, initialExtensions);
   }
   if (initialSort === 'lastUpdated') {
     currentSort = initialSort;
     if (sortSelect) sortSelect.value = initialSort;
   }
 
-  document.getElementById('filter-extension')?.addEventListener('change', () => {
-    currentFilters.extensions = getChoicesValues(extensionSelect);
+  extensionSelectEl?.addEventListener('change', () => {
+    currentFilters.extensions = getSelectValues(extensionSelectEl);
     applyFiltersAndRender();
     syncUrlState();
   });
@@ -150,14 +132,13 @@ export async function initInstructionsPage(): Promise<void> {
   clearFiltersBtn?.addEventListener('click', () => {
     currentFilters = { extensions: [] };
     currentSort = 'title';
-    extensionSelect.removeActiveItems();
+    clearSelectValues(extensionSelectEl);
     if (sortSelect) sortSelect.value = 'title';
     applyFiltersAndRender();
     syncUrlState();
   });
 
   applyFiltersAndRender();
-  setupModal();
   setupDropdownCloseHandlers();
   setupActionHandlers();
 }

@@ -9,8 +9,13 @@ import { readExternalPlugins, validateExternalPlugin } from "./external-plugin-v
 export const ISSUE_FORM_MARKER = "<!-- external-plugin-submission -->";
 export const EXTERNAL_PLUGIN_INTAKE_COMMENT_MARKER = "<!-- external-plugin-intake -->";
 export const RERUN_INTAKE_COMMAND = "/rerun-intake";
+export const MARK_READY_FOR_REVIEW_COMMAND = "/mark-ready-for-review";
 const RERUN_INTAKE_COMMAND_PATTERN = new RegExp(
   `^\\s*${RERUN_INTAKE_COMMAND.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+  "m",
+);
+const MARK_READY_FOR_REVIEW_COMMAND_PATTERN = new RegExp(
+  `^\\s*${MARK_READY_FOR_REVIEW_COMMAND.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
   "m",
 );
 const PLUGINS_DIR = path.join(ROOT_FOLDER, "plugins");
@@ -49,6 +54,13 @@ const FIELD_TITLES = Object.freeze({
 const LEGACY_FIELD_TITLES = Object.freeze({
   immutableRef: "Immutable ref to review",
 });
+const EXTERNAL_CANVAS_KEYWORD = "canvas";
+const EXTERNAL_CANVAS_PREVIEW_PATH = "assets/preview.png";
+const EXTERNAL_PLUGIN_ROOT_MANIFEST_PATHS = Object.freeze([
+  ".github/plugin/plugin.json",
+  ".plugin/plugin.json",
+  "plugin.json",
+]);
 
 function normalizeMultilineText(value) {
   return String(value ?? "").replace(/\r\n/g, "\n");
@@ -111,6 +123,29 @@ function parseKeywords(value) {
   return keywords.length > 0 ? keywords : undefined;
 }
 
+function hasCanvasKeyword(plugin) {
+  return (plugin?.keywords ?? []).some(
+    (keyword) => String(keyword).trim().toLowerCase() === EXTERNAL_CANVAS_KEYWORD,
+  );
+}
+
+function normalizeRepoRelativePath(value) {
+  const normalized = stripNoResponse(value);
+  if (!normalized || normalized === "/") {
+    return "";
+  }
+
+  return normalized.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+}
+
+function joinRepoPath(...segments) {
+  return segments
+    .map((segment) => String(segment ?? "").trim())
+    .filter(Boolean)
+    .join("/")
+    .replace(/\/+/g, "/");
+}
+
 function parseChecklist(value) {
   const checked = new Set();
   const normalized = normalizeMultilineText(value);
@@ -136,31 +171,121 @@ function toSubmissionError(message) {
   return message.replace(/^external\.json\[0\]:\s*/, "submission: ");
 }
 
+function isGitHubRateLimitResponse(response, data) {
+  if (response.status === 429 || response.status === 503) {
+    return true;
+  }
+
+  if (response.status !== 403) {
+    return false;
+  }
+
+  const message = String(data?.message ?? "").toLowerCase();
+  return (
+    response.headers.get("retry-after") !== null ||
+    response.headers.get("x-ratelimit-remaining") === "0" ||
+    message.includes("rate limit") ||
+    message.includes("secondary rate limit")
+  );
+}
+
+function getGitHubApiErrorReason(response, data) {
+  const message = String(data?.message ?? "").toLowerCase();
+
+  if (response.status === 429) {
+    return "rate limited";
+  }
+
+  if (response.status === 503) {
+    if (message.includes("secondary rate limit")) {
+      return "secondary rate limited";
+    }
+    return "service unavailable";
+  }
+
+  if (response.status === 403 && isGitHubRateLimitResponse(response, data)) {
+    if (message.includes("secondary rate limit")) {
+      return "secondary rate limited";
+    }
+    return "rate limited";
+  }
+
+  if (response.status === 0) {
+    return "network error";
+  }
+
+  return response.statusText || `HTTP ${response.status}`;
+}
+
 async function fetchGitHubJson(apiPath, token) {
-  const response = await fetch(`https://api.github.com${apiPath}`, {
-    headers: {
-      Accept: "application/vnd.github+json",
-      "User-Agent": "awesome-copilot-external-plugin-intake",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
-
-  if (response.status === 404) {
-    return { ok: false, status: 404, data: null };
-  }
-
-  let data = null;
   try {
-    data = await response.json();
-  } catch {
-    data = null;
+    const response = await fetch(`https://api.github.com${apiPath}`, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "User-Agent": "awesome-copilot-external-plugin-intake",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (response.ok) {
+      return { kind: "found", ok: true, status: response.status, data };
+    }
+
+    if (response.status === 404) {
+      return { kind: "notFound", ok: false, status: 404, data: null };
+    }
+
+    return {
+      kind: "apiError",
+      ok: false,
+      status: response.status,
+      data,
+      reason: getGitHubApiErrorReason(response, data),
+    };
+  } catch (error) {
+    return {
+      kind: "apiError",
+      ok: false,
+      status: 0,
+      data: null,
+      reason: "network error",
+      error,
+    };
+  }
+}
+
+function encodeRepoContentPath(value) {
+  return String(value)
+    .split("/")
+    .filter((segment) => segment.length > 0)
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+}
+
+async function fetchGitHubFile(repo, filePath, ref, token) {
+  const encodedRepo = encodeRepoPath(repo);
+  const encodedPath = encodeRepoContentPath(filePath);
+  return fetchGitHubJson(
+    `/repos/${encodedRepo}/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`,
+    token,
+  );
+}
+
+function decodeGitHubFileContent(fileResponse) {
+  const encodedContent = fileResponse?.data?.content;
+  if (!encodedContent || typeof encodedContent !== "string") {
+    return null;
   }
 
-  return {
-    ok: response.ok,
-    status: response.status,
-    data,
-  };
+  const normalized = encodedContent.replace(/\n/g, "");
+  return Buffer.from(normalized, "base64").toString("utf8");
 }
 
 function encodeRepoPath(repo) {
@@ -172,12 +297,16 @@ async function validateRemoteRepository(repo, { ref, sha }, errors, warnings, to
   const encodedRepo = encodeRepoPath(repo);
   const repositoryResponse = await fetchGitHubJson(`/repos/${encodedRepo}`, token);
 
-  if (!repositoryResponse.ok) {
-    if (repositoryResponse.status === 404) {
-      errors.push(`submission: GitHub repository "${repo}" was not found`);
-    } else {
-      errors.push(`submission: could not inspect GitHub repository "${repo}" (HTTP ${repositoryResponse.status})`);
-    }
+  if (repositoryResponse.kind === "notFound") {
+    errors.push(`submission: GitHub repository "${repo}" was not found`);
+    return;
+  }
+
+  if (repositoryResponse.kind === "apiError") {
+    const statusText = repositoryResponse.status ? `HTTP ${repositoryResponse.status}` : "network error";
+    warnings.push(
+      `submission: could not verify GitHub repository "${repo}" (${statusText}${repositoryResponse.reason ? ` — ${repositoryResponse.reason}` : ""}); a maintainer should re-run intake`,
+    );
     return;
   }
 
@@ -191,11 +320,17 @@ async function validateRemoteRepository(repo, { ref, sha }, errors, warnings, to
 
   if (sha) {
     if (/^[0-9a-f]{40}$/i.test(sha)) {
-      const commitResponse = await fetchGitHubJson(`/repos/${encodedRepo}/commits/${encodeURIComponent(sha)}`, token);
-      if (!commitResponse.ok) {
+      const commitResponse = await fetchGitHubJson(`/repos/${encodedRepo}/git/commits/${encodeURIComponent(sha)}`, token);
+      if (commitResponse.kind === "notFound") {
         errors.push(`submission: commit "${sha}" was not found in GitHub repository "${repo}"`);
+      } else if (commitResponse.kind === "apiError") {
+        const statusText = commitResponse.status ? `HTTP ${commitResponse.status}` : "network error";
+        warnings.push(
+          `submission: could not verify commit "${sha}" in GitHub repository "${repo}" (${statusText}${commitResponse.reason ? ` — ${commitResponse.reason}` : ""}); a maintainer should re-run intake`,
+        );
       }
     }
+
   }
 
   if (!ref) {
@@ -203,9 +338,14 @@ async function validateRemoteRepository(repo, { ref, sha }, errors, warnings, to
   }
 
   if (/^[0-9a-f]{40}$/i.test(ref)) {
-    const commitResponse = await fetchGitHubJson(`/repos/${encodedRepo}/commits/${encodeURIComponent(ref)}`, token);
-    if (!commitResponse.ok) {
+    const commitResponse = await fetchGitHubJson(`/repos/${encodedRepo}/git/commits/${encodeURIComponent(ref)}`, token);
+    if (commitResponse.kind === "notFound") {
       errors.push(`submission: commit "${ref}" was not found in GitHub repository "${repo}"`);
+    } else if (commitResponse.kind === "apiError") {
+      const statusText = commitResponse.status ? `HTTP ${commitResponse.status}` : "network error";
+      warnings.push(
+        `submission: could not verify commit "${ref}" in GitHub repository "${repo}" (${statusText}${commitResponse.reason ? ` — ${commitResponse.reason}` : ""}); a maintainer should re-run intake`,
+      );
     }
     return;
   }
@@ -221,7 +361,7 @@ async function validateRemoteRepository(repo, { ref, sha }, errors, warnings, to
   const tagName = ref.startsWith("refs/tags/") ? ref.slice("refs/tags/".length) : ref;
   const tagResponse = await fetchGitHubJson(`/repos/${encodedRepo}/git/ref/tags/${encodeURIComponent(tagName)}`, token);
 
-  if (tagResponse.ok) {
+  if (tagResponse.kind === "found") {
     return;
   }
 
@@ -230,8 +370,109 @@ async function validateRemoteRepository(repo, { ref, sha }, errors, warnings, to
     return;
   }
 
-  if (!tagResponse.ok) {
+  if (tagResponse.kind === "notFound") {
     errors.push(`submission: tag "${ref}" was not found in GitHub repository "${repo}"`);
+  } else if (tagResponse.kind === "apiError") {
+    const statusText = tagResponse.status ? `HTTP ${tagResponse.status}` : "network error";
+    warnings.push(
+      `submission: could not verify tag "${ref}" in GitHub repository "${repo}" (${statusText}${tagResponse.reason ? ` — ${tagResponse.reason}` : ""}); a maintainer should re-run intake`,
+    );
+  }
+}
+
+async function validateCanvasPluginMetadata(plugin, errors, warnings, token) {
+  const repo = plugin?.source?.repo;
+  const sha = plugin?.source?.sha;
+  const ref = plugin?.source?.ref;
+  const releaseLocator = sha || ref;
+  const releaseLocatorDescription = sha ? `commit "${sha}"` : `ref "${ref}"`;
+  const pluginRoot = normalizeRepoRelativePath(plugin?.source?.path);
+
+  if (!releaseLocator) {
+    errors.push('submission: plugins tagged with "canvas" must provide "Ref to review" and/or "Commit SHA to review"');
+    return;
+  }
+
+  if (!repo) {
+    return;
+  }
+
+  let manifest = null;
+  let manifestPath = null;
+  let sawManifestApiError = false;
+
+  const manifestCandidates = EXTERNAL_PLUGIN_ROOT_MANIFEST_PATHS.map((relativePath) =>
+    joinRepoPath(pluginRoot, relativePath),
+  );
+
+  for (const candidatePath of manifestCandidates) {
+    const response = await fetchGitHubFile(repo, candidatePath, releaseLocator, token);
+    if (response.kind === "notFound") {
+      continue;
+    }
+
+    if (response.kind === "apiError") {
+      sawManifestApiError = true;
+      continue;
+    }
+
+    if (response.data?.type !== "file") {
+      continue;
+    }
+
+    const decoded = decodeGitHubFileContent(response);
+    if (!decoded) {
+      errors.push(`submission: could not decode plugin manifest "${candidatePath}" at ${releaseLocatorDescription}`);
+      return;
+    }
+
+    try {
+      manifest = JSON.parse(decoded);
+      manifestPath = candidatePath;
+      break;
+    } catch (error) {
+      errors.push(
+        `submission: plugin manifest "${candidatePath}" at ${releaseLocatorDescription} is not valid JSON (${error.message})`,
+      );
+      return;
+    }
+  }
+
+  if (!manifest) {
+    if (sawManifestApiError) {
+      warnings.push(
+        `submission: could not verify canvas plugin manifest in GitHub repository "${repo}" at ${releaseLocatorDescription}; a maintainer should re-run intake`,
+      );
+      return;
+    }
+
+    const expectedPaths = manifestCandidates.map((candidatePath) => `"${candidatePath}"`).join(", ");
+    errors.push(
+      `submission: plugins tagged with "canvas" must include a manifest at one of ${expectedPaths} in ${releaseLocatorDescription}`,
+    );
+    return;
+  }
+
+  if (manifest.logo !== EXTERNAL_CANVAS_PREVIEW_PATH) {
+    errors.push(
+      `submission: plugins tagged with "canvas" must set "logo" to "${EXTERNAL_CANVAS_PREVIEW_PATH}" in "${manifestPath}"`,
+    );
+  }
+
+  const previewPath = joinRepoPath(pluginRoot, EXTERNAL_CANVAS_PREVIEW_PATH);
+  const previewResponse = await fetchGitHubFile(repo, previewPath, releaseLocator, token);
+  if (previewResponse.kind === "notFound") {
+    errors.push(
+      `submission: plugins tagged with "canvas" must include "${EXTERNAL_CANVAS_PREVIEW_PATH}" at ${releaseLocatorDescription}`,
+    );
+  } else if (previewResponse.kind === "apiError") {
+    warnings.push(
+      `submission: could not verify "${EXTERNAL_CANVAS_PREVIEW_PATH}" in GitHub repository "${repo}" at ${releaseLocatorDescription}; a maintainer should re-run intake`,
+    );
+  } else if (previewResponse.data?.type !== "file") {
+    errors.push(
+      `submission: "${EXTERNAL_CANVAS_PREVIEW_PATH}" must be a file in ${releaseLocatorDescription}`,
+    );
   }
 }
 
@@ -318,7 +559,192 @@ export function parseRerunIntakeCommand(body) {
   return RERUN_INTAKE_COMMAND_PATTERN.test(String(body ?? ""));
 }
 
-export async function evaluateExternalPluginIssue({ issue, token } = {}) {
+export function parseMarkReadyForReviewCommand(body) {
+  const text = String(body ?? "");
+  if (!MARK_READY_FOR_REVIEW_COMMAND_PATTERN.test(text)) {
+    return undefined;
+  }
+
+  const commandLine = text.split(/\r?\n/).find((line) => MARK_READY_FOR_REVIEW_COMMAND_PATTERN.test(line));
+  const reason = commandLine?.replace(MARK_READY_FOR_REVIEW_COMMAND_PATTERN, "").trim();
+
+  return {
+    command: MARK_READY_FOR_REVIEW_COMMAND,
+    reason: reason || undefined,
+  };
+}
+
+function normalizeQualityGateResult(rawResult) {
+  const defaults = {
+    overall_status: "not_run",
+    vally_lint_status: "not_run",
+    smoke_status: "not_run",
+    version_match_status: "not_run",
+    failure_class: "none",
+    summary: "",
+    vally_lint_output: "",
+    smoke_output: "",
+    version_match_output: "",
+  };
+
+  if (!rawResult || typeof rawResult !== "object" || Array.isArray(rawResult)) {
+    return defaults;
+  }
+
+  return {
+    ...defaults,
+    ...rawResult,
+  };
+}
+
+function buildQualityGatesCommentSection(qualityResult) {
+  const vallyState = qualityResult.vally_lint_status || "not_run";
+  const smokeState = qualityResult.smoke_status || "not_run";
+  const versionMatchState = qualityResult.version_match_status || "not_run";
+  const summaryText = String(qualityResult.summary || "").trim() || "_No quality gate details were provided._";
+
+  const sections = [
+    "### Quality gate summary",
+    "",
+    "| Gate | Status |",
+    "|---|---|",
+    `| vally lint | ${vallyState} |`,
+    `| install smoke test | ${smokeState} |`,
+    `| version match | ${versionMatchState} |`,
+    "",
+    summaryText,
+  ];
+
+  const vallyOutput = String(qualityResult.vally_lint_output || "").trim();
+  if (vallyOutput) {
+    sections.push(
+      "",
+      "<details>",
+      "<summary>vally lint output</summary>",
+      "",
+      "```text",
+      vallyOutput,
+      "```",
+      "",
+      "</details>",
+    );
+  }
+
+  const smokeOutput = String(qualityResult.smoke_output || "").trim();
+  if (smokeOutput) {
+    sections.push(
+      "",
+      "<details>",
+      "<summary>Install smoke test output</summary>",
+      "",
+      "```text",
+      smokeOutput,
+      "```",
+      "",
+      "</details>",
+    );
+  }
+
+  const versionMatchOutput = String(qualityResult.version_match_output || "").trim();
+  if (versionMatchOutput) {
+    sections.push(
+      "",
+      "<details>",
+      "<summary>Version match output</summary>",
+      "",
+      "```text",
+      versionMatchOutput,
+      "```",
+      "",
+      "</details>",
+    );
+  }
+
+  return sections.join("\n");
+}
+
+function getIntakeStateFromQualityResult(baseResult, qualityResult) {
+  if (!baseResult.valid) {
+    return "requires-submitter-fixes";
+  }
+
+  if (qualityResult.failure_class === "submitter_fixes") {
+    return "requires-submitter-fixes";
+  }
+
+  if (qualityResult.failure_class === "infra") {
+    return "awaiting-review";
+  }
+
+  return "ready-for-review";
+}
+
+function buildMergedIntakeComment(baseResult, qualityResult, runId, owner, repo) {
+  if (!baseResult.valid) {
+    return baseResult.commentBody;
+  }
+
+  const marker = baseResult.commentMarker ?? EXTERNAL_PLUGIN_INTAKE_COMMENT_MARKER;
+  const qualitySection = buildQualityGatesCommentSection(qualityResult);
+  const runLink = runId && owner && repo ? `_[View workflow run](https://github.com/${owner}/${repo}/actions/runs/${runId})_` : "";
+
+  const intro =
+    qualityResult.failure_class === "submitter_fixes"
+      ? "## ⚠️ External plugin intake requires submitter fixes"
+      : qualityResult.failure_class === "infra"
+        ? "## ⚠️ External plugin intake could not complete quality checks"
+        : "## ✅ External plugin intake passed";
+
+  const statusLine =
+    qualityResult.failure_class === "submitter_fixes"
+      ? "This submission passed metadata validation, but quality gates found issues that must be fixed before it can move to maintainer review. Update the issue details or source plugin and then comment `/rerun-intake`."
+      : qualityResult.failure_class === "infra"
+        ? "This submission passed metadata validation, but the automated quality checks hit an infrastructure issue. A maintainer should rerun intake or use the explicit override command after review."
+        : "This submission passed automated intake validation and quality checks and is ready for maintainer review.";
+
+  return [
+    marker,
+    intro,
+    "",
+    statusLine,
+    "",
+    `- **Plugin:** ${baseResult.plugin?.name ?? "unknown"}`,
+    `- **Repository:** ${baseResult.plugin?.repository ?? "unknown"}`,
+    baseResult.plugin?.source?.ref ? `- **Ref:** [\`${baseResult.plugin.source.ref.replaceAll('\`', '\\\`')}\`](https://github.com/${encodeRepoPath(baseResult.plugin.source.repo)}/tree/${encodeURIComponent(baseResult.plugin.source.ref).replaceAll("%2F", "/")})` : undefined,
+    baseResult.plugin?.source?.sha ? `- **SHA:** [\`${baseResult.plugin.source.sha.replaceAll('\`', '\\\`')}\`](https://github.com/${encodeRepoPath(baseResult.plugin.source.repo)}/tree/${encodeURIComponent(baseResult.plugin.source.sha).replaceAll("%2F", "/")})` : undefined,
+    "",
+    qualitySection,
+    "",
+    "",
+    "### Canonical external.json payload",
+    "",
+    "",
+    "```json",
+    JSON.stringify(baseResult.plugin ?? {}, null, 2),
+    "```",
+    baseResult.warnings?.length
+      ? ["", "### Warnings", "", ...baseResult.warnings.map((warning) => `- ${warning}`)].join("\n")
+      : "",
+    runLink ? `\n${runLink}` : "",
+  ].join("\n");
+}
+
+export function applyQualityGateResult(baseEvaluation, qualityGateResult, runId, owner, repo) {
+  const baseResult = typeof baseEvaluation === "string" ? JSON.parse(baseEvaluation) : baseEvaluation;
+  const qualityResult = normalizeQualityGateResult(
+    typeof qualityGateResult === "string" ? JSON.parse(qualityGateResult) : qualityGateResult,
+  );
+  const intakeState = getIntakeStateFromQualityResult(baseResult, qualityResult);
+
+  return {
+    ...baseResult,
+    qualityGates: qualityResult,
+    intakeState,
+    commentBody: buildMergedIntakeComment(baseResult, qualityResult, runId, owner, repo),
+  };
+}
+
+export async function evaluateExternalPluginIssue({ issue, token, runId, owner, repo } = {}) {
   const issueBody = issue?.body ?? "";
   const parsed = parseExternalPluginIssueBody(issueBody);
   const errors = [...parsed.errors];
@@ -334,6 +760,7 @@ export async function evaluateExternalPluginIssue({ issue, token } = {}) {
   const validationResult = validateExternalPlugin(parsed.plugin, 0, { policy: "publicSubmission" });
   errors.push(...validationResult.errors.map(toSubmissionError));
   warnings.push(...validationResult.warnings.map(toSubmissionError));
+  const isCanvasPlugin = hasCanvasKeyword(parsed.plugin);
 
   if (parsed.plugin?.name) {
     const matchingName = duplicateNames.find(
@@ -346,6 +773,10 @@ export async function evaluateExternalPluginIssue({ issue, token } = {}) {
 
   if (parsed.plugin?.source?.repo && (parsed.plugin?.source?.ref || parsed.plugin?.source?.sha)) {
     await validateRemoteRepository(parsed.plugin.source.repo, parsed.plugin.source, errors, warnings, token);
+  }
+
+  if (isCanvasPlugin) {
+    await validateCanvasPluginMetadata(parsed.plugin, errors, warnings, token);
   }
 
   const dedupedErrors = [...new Set(errors)];
@@ -362,6 +793,8 @@ export async function evaluateExternalPluginIssue({ issue, token } = {}) {
       ].join("\n")
     : "```json\n{}\n```";
 
+  const runLink = runId && owner && repo ? `_[View workflow run](https://github.com/${owner}/${repo}/actions/runs/${runId})_` : "";
+
   const commentBody = valid
     ? [
         marker,
@@ -371,27 +804,31 @@ export async function evaluateExternalPluginIssue({ issue, token } = {}) {
         "",
         `- **Plugin:** ${parsed.plugin.name}`,
         `- **Repository:** ${parsed.plugin.repository}`,
-        parsed.plugin.source.ref ? `- **Ref:** ${parsed.plugin.source.ref}` : undefined,
-        parsed.plugin.source.sha ? `- **SHA:** ${parsed.plugin.source.sha}` : undefined,
+        parsed.plugin.source.ref ? `- **Ref:** [\`${parsed.plugin.source.ref.replaceAll('\`', '\\\`')}\`](https://github.com/${encodeRepoPath(parsed.plugin.source.repo)}/tree/${encodeURIComponent(parsed.plugin.source.ref).replaceAll("%2F", "/")})` : undefined,
+        parsed.plugin.source.sha ? `- **SHA:** [\`${parsed.plugin.source.sha.replaceAll('\`', '\\\`')}\`](https://github.com/${encodeRepoPath(parsed.plugin.source.repo)}/tree/${encodeURIComponent(parsed.plugin.source.sha).replaceAll("%2F", "/")})` : undefined,
         `- **Keywords:** ${normalizedKeywords}`,
         "",
+        "",
         "### Canonical external.json payload",
+        "",
         "",
         payload,
         "",
         "### Reviewer notes",
         "",
+        "",
         notes,
         dedupedWarnings.length > 0
           ? ["", "### Warnings", "", ...dedupedWarnings.map((warning) => `- ${warning}`)].join("\n")
           : "",
-      ].filter(Boolean).join("\n")
+        runLink ? `\n${runLink}` : "",
+      ].join("\n")
     : [
         marker,
-        "## ❌ External plugin intake failed",
+        "## ⚠️ External plugin intake requires submitter fixes",
         "",
-        "This submission did not pass automated intake validation, so the issue has been closed.",
-        `Edit the issue form to address the fixes below, then have the issue author or a maintainer comment \`${RERUN_INTAKE_COMMAND}\` to re-run intake for this closed submission.`,
+        "This submission did not pass automated intake validation and cannot move to maintainer review yet.",
+        `Edit the issue form to address the fixes below. Intake reruns automatically when the issue is edited, or the issue author/maintainer can comment \`${RERUN_INTAKE_COMMAND}\` to re-run on demand.`,
         "",
         "### Required fixes",
         "",
@@ -399,14 +836,17 @@ export async function evaluateExternalPluginIssue({ issue, token } = {}) {
         dedupedWarnings.length > 0
           ? ["", "### Warnings", "", ...dedupedWarnings.map((warning) => `- ${warning}`)].join("\n")
           : "",
-      ].filter(Boolean).join("\n");
+        runLink ? `\n${runLink}` : "",
+      ].join("\n");
 
   return {
     valid,
+    intakeState: valid ? "ready-for-review" : "requires-submitter-fixes",
     markerPresent: parsed.markerPresent,
     errors: dedupedErrors,
     warnings: dedupedWarnings,
     plugin: parsed.plugin,
+    isCanvasPlugin,
     commentBody,
     commentMarker: marker,
   };
@@ -417,11 +857,14 @@ const isCli = process.argv[1] && fileURLToPath(import.meta.url) === path.resolve
 if (isCli) {
   const eventPath = process.argv[2];
   if (!eventPath) {
-    console.error("Usage: node ./eng/external-plugin-intake.mjs <github-event.json>");
+    console.error("Usage: node ./eng/external-plugin-intake.mjs <github-event.json> [runId] [owner] [repo]");
     process.exit(1);
   }
 
   const event = JSON.parse(fs.readFileSync(eventPath, "utf8"));
-  const result = await evaluateExternalPluginIssue({ issue: event.issue, token: process.env.GITHUB_TOKEN });
+  const runId = process.argv[3];
+  const owner = process.argv[4];
+  const repo = process.argv[5];
+  const result = await evaluateExternalPluginIssue({ issue: event.issue, token: process.env.GITHUB_TOKEN, runId, owner, repo });
   process.stdout.write(JSON.stringify(result));
 }
