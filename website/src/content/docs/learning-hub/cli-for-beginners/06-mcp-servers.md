@@ -3,7 +3,7 @@ title: '06 · Connect to GitHub, Databases & APIs'
 description: 'Mirror the source chapter on MCP servers and external integrations for GitHub Copilot CLI.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-10
+lastUpdated: 2026-07-17
 ---
 
 ![Chapter 06: MCP Servers](/images/learning-hub/copilot-cli-for-beginners/06/chapter-header.png)
@@ -268,6 +268,8 @@ This adds the server and its associated agent skills automatically. The skills i
 - **microsoft-docs**: Concepts, tutorials, and factual lookups
 - **microsoft-code-reference**: API lookups, code samples, and troubleshooting
 - **microsoft-skill-creator**: A meta-skill for generating custom skills about Microsoft technologies
+
+> 💡 **Managing installed plugins**: After installing plugins, use `/plugins` to open the plugins dashboard. From there you can view, enable, disable, or remove any installed plugin — no need to edit config files manually.
 
 **Usage:**
 ```bash
