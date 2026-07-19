@@ -3,7 +3,7 @@ title: 'Installing and Using Plugins'
 description: 'Learn how to find, install, and manage plugins that extend GitHub Copilot CLI with reusable agents, skills, hooks, and integrations.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
+lastUpdated: 2026-07-19
 estimatedReadingTime: '8 minutes'
 tags:
   - plugins
@@ -220,7 +220,18 @@ copilot plugin marketplace update
 
 # Remove a plugin
 copilot plugin uninstall my-plugin
+
+# Remove only the skills from an installed plugin (v1.0.72+)
+copilot plugins remove --skill my-plugin
+
+# Remove only the MCP servers from an installed plugin (v1.0.72+)
+copilot plugins remove --mcp my-plugin
+
+# Remove only the plugin agents (v1.0.72+)
+copilot plugins remove --plugin my-plugin
 ```
+
+> **Granular removal (v1.0.72+)**: The `--plugin`, `--mcp`, and `--skill` flags let you remove individual components of a plugin without uninstalling the whole plugin. This is useful when you want to keep a plugin's agents but disable its MCP server integrations, or vice versa.
 
 ### Loading Plugins from a Local Directory
 
