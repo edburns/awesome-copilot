@@ -3,7 +3,7 @@ title: 'Copilot Configuration Basics'
 description: 'Learn how to configure GitHub Copilot at user, workspace, and repository levels to optimize your AI-assisted development experience.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
+lastUpdated: 2026-07-20
 estimatedReadingTime: '10 minutes'
 tags:
   - configuration
@@ -449,6 +449,14 @@ The model picker opens in a **full-screen view** with inline reasoning effort ad
 
 **Model family aliases** (v1.0.64+): Instead of typing a full model name, you can use short family aliases in the model setting: `opus`, `sonnet`, `haiku` (Anthropic), and `gpt`, `gemini` (Google/OpenAI). The CLI resolves the alias to the latest available model in that family. This is especially useful in scripts or configuration files where you want to track the best model in a family without hardcoding a version string.
 
+**Per-session model override** (v1.0.72+): Use `/model --session` (or `-s`) to change the model, reasoning effort, or context window for just the current session, without affecting your global settings:
+
+```
+/model --session                    # open the model picker scoped to this session only
+```
+
+This is useful when you want to experiment with a different model for a specific task without permanently changing your preference. Your global model setting remains unchanged after the session ends.
+
 ### CLI Session Commands
 
 The `/settings` command (v1.0.61+) opens an interactive dialog to browse and edit all user settings in one place. Use it to discover available settings, toggle options, and update values without manually editing your config file:
@@ -541,11 +549,19 @@ The `/cd` command changes the working directory for the current session. Since v
 
 This is useful when you have multiple backgrounded sessions each focused on a different project directory.
 
-The `/worktree` command (v1.0.61+, also aliased `/move`) creates a new git worktree and switches into it, moving any uncommitted changes along. This lets you start working on a parallel branch without leaving your current terminal session:
+The `/worktree` command (v1.0.61+) creates a new git worktree and switches into it, **leaving your uncommitted changes behind** in the original worktree. Use it when you want to start a clean parallel branch without carrying over in-progress work:
 
 ```
 /worktree my-feature-branch
 ```
+
+The `/move` command (v1.0.71+, previously an alias for `/worktree`) creates a new git worktree and **carries your uncommitted changes into it**. Use it when you want to continue your current work on a new branch:
+
+```
+/move my-feature-branch
+```
+
+> **Before v1.0.71**: `/move` was an alias for `/worktree` — both commands moved uncommitted changes into the new worktree. From v1.0.71 onwards, they are distinct: `/worktree` leaves changes behind, while `/move` carries them.
 
 In v1.0.66+, you can pass a task description to `/worktree` to name the branch from the task and immediately run the task as the first prompt in the new worktree — all in one step:
 

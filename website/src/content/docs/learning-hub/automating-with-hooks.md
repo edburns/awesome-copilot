@@ -3,7 +3,7 @@ title: 'Automating with Hooks'
 description: 'Learn how to use hooks to automate lifecycle events like formatting, linting, and governance checks during Copilot agent sessions.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
+lastUpdated: 2026-07-20
 estimatedReadingTime: '8 minutes'
 tags:
   - hooks
@@ -94,7 +94,7 @@ Hooks can trigger on several lifecycle events:
 | `postToolUse` | After a tool **successfully** completes execution | Log results, track usage, format code after edits |
 | `postToolUseFailure` | When a tool call **fails with an error** | Log errors for debugging, send failure alerts, track error patterns |
 | `PermissionRequest` | When the CLI shows a **permission prompt** to the user | Programmatically approve or deny permission requests, enable auto-approval in CI/headless environments |
-| `agentStop` | Main agent finishes responding to a prompt | Run final linters/formatters, validate complete changes |
+| `agentStop` | Main agent finishes responding to a prompt | Run final linters/formatters, validate complete changes; receives `stop_hook_active` flag when CLI forces continuation (v1.0.72+) |
 | `preCompact` | Before the agent compacts its context window | Save a snapshot, log compaction event, run summary scripts |
 | `subagentStart` | A subagent is spawned by the main agent | Inject additional context into the subagent's prompt, log subagent launches |
 | `subagentStop` | A subagent completes before returning results | Audit subagent outputs, log subagent activity |
@@ -116,6 +116,30 @@ cat <<EOF
   "additionalContext": "Current branch: $(git rev-parse --abbrev-ref HEAD). Open tickets: $(gh issue list --limit 3 --json number,title | jq -r '.[] | \"#\(.number) \(.title)\"' | tr '\n' '; ')"
 }
 EOF
+```
+
+### agentStop and the stop_hook_active flag (v1.0.72+)
+
+The `agentStop` hook runs after the main agent finishes responding to each prompt, making it ideal for validation steps like running linters or formatters. However, if an `agentStop` hook **always returns a non-zero exit code** (i.e., always blocks), it would cause an infinite loop. To prevent this, the CLI now enforces a safety limit:
+
+- After **8 consecutive blocks** from an `agentStop` hook, the CLI **ends the turn** and stops retrying.
+- When the CLI forces the turn to end this way, the hook receives a `stop_hook_active` flag in its JSON input, so it can detect forced continuation and self-limit its behavior.
+
+Use the `stop_hook_active` flag to distinguish between normal blocking (where you want the agent to retry) and forced continuation (where you should back off):
+
+```bash
+#!/usr/bin/env bash
+INPUT=$(cat)
+STOP_HOOK_ACTIVE=$(echo "$INPUT" | jq -r '.stop_hook_active // false')
+
+if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
+  # Forced continuation — don't block, just report
+  echo "Lint check skipped (forced continuation)" >&2
+  exit 0
+fi
+
+# Normal validation
+npx eslint . --max-warnings 0
 ```
 
 ### userPromptSubmitted additionalContext (v1.0.65+)
