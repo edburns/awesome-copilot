@@ -4,11 +4,12 @@
     the remove-before-merge directory with an ignorance-reduction plan.
 
 .DESCRIPTION
-    This script:
-    1. Creates a new branch from the currently checked-out commit.
-    2. Creates the <slug>-remove-before-merge/ directory.
-    3. Writes the ignorance-reduction plan for the math-tool scenario.
-    4. Commits and pushes the branch to origin.
+    This script uses the GitHub API (via gh) to:
+    1. Create a new branch from the repo's default branch HEAD.
+    2. Commit the ignorance-reduction plan file to that branch.
+
+    All operations target the remote repo specified by -Repo. No local
+    git state is required or modified.
 
     Enabling assumptions from plugins/shepherd-task/README.md must already
     be satisfied before running this script.
@@ -54,27 +55,32 @@ Write-Host "RBM directory:   $rbmDir"
 Write-Host "Plan file:       $rbmDir/$planFile"
 Write-Host ""
 
-# ── Verify git state ────────────────────────────────────────────────────
+# ── Get default branch SHA from the target repo ─────────────────────────
 
-$gitStatus = git status --porcelain 2>&1
-if ($gitStatus) {
-    throw "Working tree is not clean. Commit or stash changes before running this script."
+Write-Host "Fetching default branch SHA from $Repo..."
+$defaultBranch = gh api "repos/$Repo" --jq '.default_branch' 2>&1
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to query repo '$Repo': $defaultBranch"
 }
+$defaultBranch = $defaultBranch.Trim()
 
-# ── Create and switch to the base branch ─────────────────────────────────
+$sha = gh api "repos/$Repo/git/ref/heads/$defaultBranch" --jq '.object.sha' 2>&1
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to get SHA for '$defaultBranch': $sha"
+}
+$sha = $sha.Trim()
+Write-Host "  Default branch: $defaultBranch (SHA: $($sha.Substring(0,8))...)"
 
-Write-Host "Creating branch '$BaseBranch' from current HEAD..."
-git checkout -b $BaseBranch 2>&1 | Write-Host
+# ── Create the base branch in the target repo ────────────────────────────
+
+Write-Host "Creating branch '$BaseBranch' in $Repo..."
+$refName = "refs/heads/$BaseBranch"
+$null = gh api "repos/$Repo/git/refs" -f "ref=$refName" -f "sha=$sha" 2>&1
 if ($LASTEXITCODE -ne 0) {
     throw "Failed to create branch '$BaseBranch'. Does it already exist?"
 }
 
-# ── Create remove-before-merge directory ─────────────────────────────────
-
-Write-Host "Creating directory '$rbmDir'..."
-New-Item -ItemType Directory -Path $rbmDir -Force | Out-Null
-
-# ── Write ignorance-reduction plan ───────────────────────────────────────
+# ── Commit the ignorance-reduction plan to the target repo ───────────────
 
 $planContent = @"
 # Implementation plan: PowerShell math-tool ($slug)
@@ -259,28 +265,25 @@ output.
 5. All Pester tests pass
 "@
 
-$planPath = Join-Path $rbmDir $planFile
-Set-Content -Path $planPath -Value $planContent -Encoding utf8NoBOM
-Write-Host "Wrote ignorance-reduction plan to '$planPath'"
+$planPath = "$rbmDir/$planFile"
+Write-Host "Committing ignorance-reduction plan to '$planPath' on branch '$BaseBranch'..."
 
-# ── Commit and push ──────────────────────────────────────────────────────
+# Encode content as base64 for the GitHub API
+$planBytes = [System.Text.Encoding]::UTF8.GetBytes($planContent)
+$planBase64 = [Convert]::ToBase64String($planBytes)
 
-Write-Host ""
-Write-Host "Committing and pushing..."
-git add $rbmDir
-git commit -m "chore: add $rbmDir with ignorance-reduction plan for math-tool test"
+$null = gh api "repos/$Repo/contents/$planPath" `
+    -X PUT `
+    -f "message=chore: add $rbmDir with ignorance-reduction plan for math-tool test" `
+    -f "content=$planBase64" `
+    -f "branch=$BaseBranch" 2>&1
 if ($LASTEXITCODE -ne 0) {
-    throw "git commit failed"
-}
-
-git push -u origin $BaseBranch
-if ($LASTEXITCODE -ne 0) {
-    throw "git push failed"
+    throw "Failed to commit plan file to $Repo"
 }
 
 Write-Host ""
 Write-Host "Done. Base branch '$BaseBranch' is ready."
 Write-Host "  Remote: https://github.com/$Repo/tree/$BaseBranch"
-Write-Host "  Plan:   $rbmDir/$planFile"
+Write-Host "  Plan:   $planPath"
 Write-Host ""
 Write-Host "Next step: run 02-create-issues.ps1 -Repo $Repo -BaseBranch $BaseBranch"
