@@ -3,7 +3,7 @@ title: 'Using the Copilot Coding Agent'
 description: 'Learn how to use GitHub Copilot coding agent to autonomously work on issues, generate pull requests, and automate development tasks.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-05-13
+lastUpdated: 2026-07-21
 estimatedReadingTime: '12 minutes'
 tags:
   - coding-agent
@@ -333,6 +333,19 @@ This repository provides a curated collection of agents, skills, and hooks desig
 4. The hooks will run automatically during coding agent sessions
 
 > **Example workflow**: Combine a `test-specialist` agent with a `database-migrations` skill and a linting hook. Assign an issue to the coding agent using the test-specialist agent — it will automatically pick up the migrations skill when relevant, and the hook ensures all code is formatted before completion.
+
+## Plan Mode Safeguards
+
+When the coding agent plans its approach before acting, it enters **plan mode** — a read-only thinking phase. Since v1.0.71, plan mode **hard-blocks** all built-in tool calls that would modify the workspace (file edits, shell commands that write or delete files, etc.). The agent can still read code, search, and reason, but cannot make changes until it exits planning.
+
+This safeguard prevents accidental edits during the planning phase and ensures the agent shows you its full plan before taking any irreversible actions. MCP and external tools are still permitted in plan mode, since their impact is outside the CLI's direct control.
+
+**What this means in practice**:
+- The agent presents a complete plan before making any changes
+- You can review the plan and redirect before execution starts
+- Any built-in mutating tool call attempted during planning is silently blocked
+
+> **Tip**: Use `/plan` to manually start a planning session when you want the agent to outline its approach before touching any files.
 
 ## Remote Control
 
