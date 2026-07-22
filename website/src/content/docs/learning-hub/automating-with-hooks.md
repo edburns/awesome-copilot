@@ -3,7 +3,7 @@ title: 'Automating with Hooks'
 description: 'Learn how to use hooks to automate lifecycle events like formatting, linting, and governance checks during Copilot agent sessions.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
+lastUpdated: 2026-07-22
 estimatedReadingTime: '8 minutes'
 tags:
   - hooks
@@ -368,6 +368,15 @@ Run ESLint after the agent finishes responding and block if there are errors:
 ```
 
 If the lint command exits with a non-zero status, the action is blocked.
+
+> **Infinite-loop protection *(v1.0.72+)***: An `agentStop` hook that itself triggers additional agent activity (for example, by asking the agent to fix lint errors) could previously cause an infinite loop. From v1.0.72, the agent automatically sets `stop_hook_active = true` in the environment while an `agentStop` hook is running. Your hook script can inspect this variable to detect that it is running inside a hook-triggered turn and avoid re-triggering further agent activity:
+>
+> ```bash
+> # Prevent re-entry: don't run if we're already inside an agentStop hook turn
+> if [ "${stop_hook_active}" = "true" ]; then
+>   exit 0
+> fi
+> ```
 
 ### Security Gating with preToolUse
 

@@ -3,7 +3,7 @@ title: 'Installing and Using Plugins'
 description: 'Learn how to find, install, and manage plugins that extend GitHub Copilot CLI with reusable agents, skills, hooks, and integrations.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
+lastUpdated: 2026-07-22
 estimatedReadingTime: '8 minutes'
 tags:
   - plugins
@@ -195,10 +195,35 @@ copilot plugin install database-data-management@awesome-copilot
 Or from an interactive session:
 
 ```
-/plugin install database-data-management@awesome-copilot
+/plugins install database-data-management@awesome-copilot
 ```
 
+> **Note**: The `/plugins` slash command (v1.0.72+) is fully equivalent to the `copilot plugin` CLI command. Both support `install`, `update`, `uninstall`, `list`, `enable`, `disable`, `remove`, and `help`.
+
 > **Deprecation notice**: Installing plugins directly from a GitHub repository URL, raw URL, or local file path (e.g., `copilot plugin install github/awesome-copilot`) is deprecated and will be removed in a future release. Use marketplace-based installation instead.
+
+### Installing Individual Skills *(v1.0.72+)*
+
+You can install a single skill directly without wrapping it in a full plugin, using the `--skill` flag:
+
+```bash
+# Install a skill from a local directory
+copilot plugins install --skill ./my-skill/
+
+# Install a skill from a URL
+copilot plugins install --skill https://example.com/skills/my-skill.zip
+
+# Install a skill from a file
+copilot plugins install --skill ./my-skill.zip
+```
+
+Or from an interactive session:
+
+```
+/plugins install --skill ./my-skill/
+```
+
+This is useful when you only need one skill from a community repository, or when distributing a skill to teammates without publishing a full plugin.
 
 ### From VS Code
 
@@ -220,6 +245,23 @@ copilot plugin marketplace update
 
 # Remove a plugin
 copilot plugin uninstall my-plugin
+
+# Enable or disable a plugin without removing it
+copilot plugin enable my-plugin
+copilot plugin disable my-plugin
+```
+
+*(v1.0.72+)* You can also target individual components when enabling, disabling, or removing:
+
+```bash
+# Disable only an MCP server from a plugin
+copilot plugin disable my-plugin --mcp my-server
+
+# Disable only a specific skill from a plugin
+copilot plugin disable my-plugin --skill my-skill
+
+# Re-enable just the plugin itself
+copilot plugin enable my-plugin --plugin
 ```
 
 ### Loading Plugins from a Local Directory
