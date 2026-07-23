@@ -3,7 +3,7 @@ title: 'Copilot Configuration Basics'
 description: 'Learn how to configure GitHub Copilot at user, workspace, and repository levels to optimize your AI-assisted development experience.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
+lastUpdated: 2026-07-23
 estimatedReadingTime: '10 minutes'
 tags:
   - configuration
@@ -223,7 +223,7 @@ The `~/.agents/skills/` path aligns with the VS Code GitHub Copilot for Azure ex
 
 | Field | Description | Example values |
 |-------|-------------|----------------|
-| `model` | The AI model to use for this repository | `"claude-sonnet-4"`, `"gpt-4.1"`, `"claude-sonnet-5"` |
+| `model` | The AI model to use for this repository | `"claude-sonnet-4"`, `"gpt-4.1"`, `"gemini-3.6-flash"`, `"claude-sonnet-5"` |
 | `effortLevel` | Reasoning effort level | `"low"`, `"medium"`, `"high"` |
 | `contextTier` | How much context to include | `"default"`, `"full"` |
 
@@ -232,6 +232,20 @@ In addition to model and effort settings, this file can also extend the URL, MCP
 **Why use this**: Pin a model when your team has agreed on the right cost/quality tradeoff for a project. Pin a high effort level for codebases where mistakes are expensive. Deny lists let you block specific MCP servers or URLs that aren't appropriate for a given project's security posture.
 
 > **Trust requirement**: The repository must be explicitly trusted by the user for these settings to take effect. This prevents untrusted repositories from changing your model or access restrictions without your knowledge.
+
+### Choosing a Model for Plan Mode
+
+*(v1.0.74+)* You can pick a **separate model specifically for plan mode**—the model used when exploring a task or generating a plan before acting. This lets you balance cost and quality: use a faster or cheaper model to draft plans, then switch to a more capable model to execute them.
+
+In an active session, use `/model plan` (or `/model --plan`) to set the plan-mode model:
+
+```
+/model plan                  # open the model picker for plan mode
+/model plan gemini-3.6-flash # set a specific model by ID
+/model plan off              # clear the plan-mode override (reverts to the session model)
+```
+
+When you leave plan mode, Copilot automatically reverts to the session model. This setting is per-session and does not persist to `settings.json`.
 
 ### Custom Agents
 
