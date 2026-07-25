@@ -3,7 +3,7 @@ title: 'Agents and Subagents'
 description: 'Learn how delegated subagents differ from primary agents, when to use them, and how to launch them in VS Code and Copilot CLI.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-01
+lastUpdated: 2026-07-25
 estimatedReadingTime: '9 minutes'
 tags:
   - agents
@@ -195,6 +195,10 @@ That means you should think about delegation features in product-specific terms:
 If you share agent files across surfaces, document those differences so users know which behaviors are portable and which are editor-specific.
 
 ## Common questions
+
+**Can I send follow-up messages to a running subagent?**
+
+Yes. *(v1.0.72+)* Multi-turn subagents are always enabled — you can send follow-up messages to a subagent that is still running, allowing you to steer or refine its work mid-task without waiting for it to complete.
 
 **Do users always invoke subagents directly?**
 

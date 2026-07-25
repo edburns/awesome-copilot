@@ -3,7 +3,7 @@ title: 'Automating with Hooks'
 description: 'Learn how to use hooks to automate lifecycle events like formatting, linting, and governance checks during Copilot agent sessions.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
+lastUpdated: 2026-07-25
 estimatedReadingTime: '8 minutes'
 tags:
   - hooks
@@ -94,7 +94,7 @@ Hooks can trigger on several lifecycle events:
 | `postToolUse` | After a tool **successfully** completes execution | Log results, track usage, format code after edits |
 | `postToolUseFailure` | When a tool call **fails with an error** | Log errors for debugging, send failure alerts, track error patterns |
 | `PermissionRequest` | When the CLI shows a **permission prompt** to the user | Programmatically approve or deny permission requests, enable auto-approval in CI/headless environments |
-| `agentStop` | Main agent finishes responding to a prompt | Run final linters/formatters, validate complete changes |
+| `agentStop` | Main agent finishes responding to a prompt | Run final linters/formatters, validate complete changes. *(v1.0.72+)* If this hook always blocks, the CLI ends the turn after 8 consecutive blocks to prevent infinite loops. |
 | `preCompact` | Before the agent compacts its context window | Save a snapshot, log compaction event, run summary scripts |
 | `subagentStart` | A subagent is spawned by the main agent | Inject additional context into the subagent's prompt, log subagent launches |
 | `subagentStop` | A subagent completes before returning results | Audit subagent outputs, log subagent activity |
@@ -368,6 +368,20 @@ Run ESLint after the agent finishes responding and block if there are errors:
 ```
 
 If the lint command exits with a non-zero status, the action is blocked.
+
+> **`agentStop` loop protection (v1.0.72+)**: If an `agentStop` hook always blocks (always exits non-zero), the CLI now ends the turn after 8 consecutive blocks instead of looping indefinitely. Hooks also receive a `stop_hook_active` boolean flag in their JSON input when this limit is approaching, so your script can detect a forced continuation and self-limit:
+>
+> ```bash
+> #!/bin/bash
+> # Check if we're in a forced continuation (stop_hook_active = true)
+> STOP_HOOK_ACTIVE=$(echo "$COPILOT_HOOK_INPUT" | jq -r '.stop_hook_active // false')
+> if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
+>   echo "Stop hook limit reached, allowing continuation" >&2
+>   exit 0
+> fi
+> # Normal lint check
+> npx eslint . --max-warnings 0
+> ```
 
 ### Security Gating with preToolUse
 
