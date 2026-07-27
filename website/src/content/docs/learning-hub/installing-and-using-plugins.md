@@ -3,7 +3,7 @@ title: 'Installing and Using Plugins'
 description: 'Learn how to find, install, and manage plugins that extend GitHub Copilot CLI with reusable agents, skills, hooks, and integrations.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
+lastUpdated: 2026-07-27
 estimatedReadingTime: '8 minutes'
 tags:
   - plugins
@@ -182,6 +182,12 @@ Pinning to a SHA guarantees that everyone on the team installs plugins from exac
 - **Change control** — review and approve plugin updates before rolling them out team-wide
 - **Stability** — prevent breaking changes in upstream marketplaces from impacting your team without notice
 
+### Open Plugin Spec v1 and mcp.json Support
+
+*(v1.0.74+)* Copilot CLI supports **Open Plugin Spec v1** plugin manifests as an alternative to the GitHub-specific `plugin.json` format. This means plugins published using the Open Plugin Spec format are installable without any conversion.
+
+In addition, Copilot CLI now recognizes **`mcp.json`** as a standard location for MCP server configuration — both at the project level (`.mcp.json` or `mcp.json` in the repository root) and within plugin packages. If a plugin ships an `mcp.json`, the MCP servers it declares are automatically registered when the plugin is installed.
+
 ## Installing Plugins
 
 ### From Copilot CLI
@@ -221,6 +227,26 @@ copilot plugin marketplace update
 # Remove a plugin
 copilot plugin uninstall my-plugin
 ```
+
+### Installing and Managing Skills Directly
+
+*(v1.0.72+)* You can install and remove individual skills from the CLI without going through a full plugin, using the `--skill` flag on `plugins install` and `plugins remove`:
+
+```bash
+# Install a skill from a file, URL, or local directory
+copilot plugins install --skill ./my-skill/
+
+# Install a skill into the current repository (project scope)
+copilot plugins install --skill ./my-skill/ --scope project
+
+# Install a skill from a URL
+copilot plugins install --skill https://example.com/my-skill.zip
+
+# Remove a skill
+copilot plugins remove --skill my-skill
+```
+
+This makes it easy to share individual skills without packaging them into a full plugin.
 
 ### Loading Plugins from a Local Directory
 
