@@ -3,7 +3,7 @@ title: 'What are Agents, Skills, and Instructions'
 description: 'Understand the primary customization primitives that extend GitHub Copilot for specific workflows.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-02-26
+lastUpdated: 2026-07-28
 estimatedReadingTime: '7 minutes'
 prev: false
 ---
@@ -88,10 +88,44 @@ By combining all three, teams can achieve:
 - Repeatable operations tasks with reduced context switching.
 - Tailored experiences for specialized domains (security, infrastructure, data science, etc.).
 
+## Beyond the Core Three: The Full Customization Ecosystem
+
+Agents, Skills, and Instructions are the foundation, but GitHub Copilot's customization ecosystem has grown to include additional primitives for more powerful automation and integration:
+
+### Hooks
+
+**Hooks** are shell scripts that run automatically at key lifecycle events during a Copilot session — when a session starts, when a prompt is submitted, or before and after a tool is used. Unlike Skills and Agents (which guide the AI), Hooks run outside the model and provide deterministic automation:
+
+- Format code after every file edit
+- Block prompts that match sensitive patterns
+- Log agent actions for compliance auditing
+- Inject dynamic context into model prompts
+
+Hooks are defined in JSON files in `.github/hooks/` and are ideal for **deterministic guardrails** that must happen reliably regardless of the AI's reasoning. See [Automating with Hooks](../automating-with-hooks/) for full details.
+
+### Plugins
+
+**Plugins** are installable packages that bundle Agents, Skills, Hooks, and MCP server configurations into a single unit. Instead of manually copying files into each project, a plugin lets you:
+
+- Install a curated set of capabilities with one command: `copilot plugin install my-plugin@awesome-copilot`
+- Share a consistent toolkit across your whole team
+- Bundle complex MCP server configurations that would otherwise require manual setup
+
+Plugins are discoverable through **marketplaces** (including the `awesome-copilot` marketplace that's built in by default). See [Installing and Using Plugins](../installing-and-using-plugins/) for details.
+
+### Canvas Extensions
+
+**Canvas Extensions** are interactive surfaces that render rich outputs — plans, diffs, browser previews, or custom data visualizations — inside the Copilot app. Where chat threads give you text, canvases give you a collaborative workspace where you and agents can view, edit, and iterate on actual work artifacts. See [Working with Canvas Extensions](../working-with-canvas-extensions/) for details.
+
+### Agentic Workflows
+
+**Agentic Workflows** are AI-powered repository automations that run Copilot coding agents in GitHub Actions. Written as markdown files with natural language instructions, they let you automate scheduled tasks, event-driven triage, and compliance checks — without writing YAML. See [Agentic Workflows](../agentic-workflows/) for details.
+
 ## Next steps
 
 - Explore the rest of the **Fundamentals** track for deeper dives on chat modes, collections, and MCP servers.
 - Browse the [Awesome Agents](../../agents/), [Skills](../../skills/), and [Instructions](../../instructions/) directories for inspiration.
+- Check the [Hooks](../../hooks/) and [Plugins](../../plugins/) directories for ready-to-use automation and installable toolkits.
 - Try generating your own artifacts, then add them to the repo to keep the Learning Hub evolving.
 
 ---
