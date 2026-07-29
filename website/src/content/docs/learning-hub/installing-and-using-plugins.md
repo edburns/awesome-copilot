@@ -3,7 +3,7 @@ title: 'Installing and Using Plugins'
 description: 'Learn how to find, install, and manage plugins that extend GitHub Copilot CLI with reusable agents, skills, hooks, and integrations.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
+lastUpdated: 2026-07-29
 estimatedReadingTime: '8 minutes'
 tags:
   - plugins
@@ -36,6 +36,10 @@ A plugin bundles one or more of the following components:
 | **Extensions** | IDE extensions installable via the plugin marketplace (v1.0.62+) | `extensions/` |
 
 A plugin might include all of these or just one — for example, a plugin could provide a single specialized agent, or an entire development toolkit with multiple agents, skills, hooks, and MCP server configurations working together.
+
+### Open Plugin Spec v1 and mcp.json Support (v1.0.74+)
+
+GitHub Copilot CLI now supports **Open Plugin Spec v1** plugin manifests and a top-level `mcp.json` configuration file as an additional standard for bundling MCP server definitions inside plugins. If your plugin includes an `mcp.json` at the root, the CLI automatically loads its server configurations when the plugin is installed — no separate `.mcp.json` in your repository is required. This aligns with cross-tool plugin formats and makes it easier to share plugin packages across tools that support the Open Plugin Spec.
 
 ### Example: What a Plugin Looks Like
 
@@ -296,6 +300,17 @@ A: Yes. Plugin components are merged with your repository's local agents, skills
 **Q: How do I create my own plugin?**
 
 A: Create a directory with a `plugin.json` manifest and your agents/skills/hooks. See the [GitHub docs on creating plugins](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-creating) for a step-by-step guide.
+
+**Q: Can I install a skill directly via the plugins command?**
+
+A: Yes. Since v1.0.72+, you can install individual skills using the `--skill` flag on the `plugins install` (or `/plugins install`) command — without needing to package them into a full plugin first:
+
+```bash
+copilot plugins install --skill ./my-skill/        # install from a local directory
+copilot plugins install --skill https://example.com/skill.zip  # install from a URL
+```
+
+You can also use `/plugins install --skill <path-or-url>` inside an interactive session. For skills that should live in the repository rather than your user profile, add `--scope project`. See [Creating Effective Skills](../creating-effective-skills/) for the full skill management reference.
 
 **Q: Can I share plugins within my organization?**
 
