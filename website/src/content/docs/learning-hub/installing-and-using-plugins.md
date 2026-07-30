@@ -3,7 +3,7 @@ title: 'Installing and Using Plugins'
 description: 'Learn how to find, install, and manage plugins that extend GitHub Copilot CLI with reusable agents, skills, hooks, and integrations.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
+lastUpdated: 2026-07-30
 estimatedReadingTime: '8 minutes'
 tags:
   - plugins
@@ -73,6 +73,12 @@ The `plugin.json` manifest declares what the plugin contains:
   ]
 }
 ```
+
+### Open Plugin Spec v1 and `mcp.json` Support (v1.0.74+)
+
+GitHub Copilot CLI now supports **Open Plugin Spec v1** plugin manifests and `mcp.json` configuration files. This means plugins authored to the open standard are directly installable alongside native Copilot plugins, and MCP server configuration can be co-located in a plugin manifest rather than requiring a separate `.mcp.json` file.
+
+When a plugin includes an `mcp.json` (or references MCP servers in its manifest), the CLI registers those servers automatically on install — no manual configuration required. This makes it easier to distribute self-contained toolkits that include their own MCP integrations.
 
 ## Why Use Plugins?
 
@@ -206,7 +212,21 @@ Browse to the plugin via `@agentPlugins` in the Extensions search view or via **
 
 ## Managing Plugins
 
-Once installed, plugins are managed with a few simple commands:
+### Enabling and Disabling Components (v1.0.76+)
+
+The `/plugins` command now includes **enable/disable toggles** for individual plugins and their components. From within an interactive session, run:
+
+```
+/plugins
+```
+
+From the `/plugins` panel you can:
+- **Enable or disable an entire plugin** without uninstalling it
+- **Enable or disable individual components** — instructions, agents, LSP servers, and hooks — independently within a plugin
+
+This is useful when you want to temporarily suspend a plugin's hooks or instructions without losing the installation, or when you need to debug which plugin component is causing unexpected behavior.
+
+### Install and Management Commands
 
 ```bash
 # List all installed plugins
