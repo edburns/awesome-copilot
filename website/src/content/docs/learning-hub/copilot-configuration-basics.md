@@ -3,7 +3,7 @@ title: 'Copilot Configuration Basics'
 description: 'Learn how to configure GitHub Copilot at user, workspace, and repository levels to optimize your AI-assisted development experience.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
+lastUpdated: 2026-07-31
 estimatedReadingTime: '10 minutes'
 tags:
   - configuration
@@ -223,7 +223,7 @@ The `~/.agents/skills/` path aligns with the VS Code GitHub Copilot for Azure ex
 
 | Field | Description | Example values |
 |-------|-------------|----------------|
-| `model` | The AI model to use for this repository | `"claude-sonnet-4"`, `"gpt-4.1"`, `"claude-sonnet-5"` |
+| `model` | The AI model to use for this repository | `"claude-sonnet-4"`, `"gpt-4.1"`, `"claude-sonnet-5"`, `"grok-4.5"` |
 | `effortLevel` | Reasoning effort level | `"low"`, `"medium"`, `"high"` |
 | `contextTier` | How much context to include | `"default"`, `"full"` |
 
@@ -428,7 +428,7 @@ CLI settings use **camelCase** naming. Key settings added in recent releases:
 | `continueOnAutoMode` | Automatically switch to the auto model on rate limit instead of pausing |
 | `proxy` | HTTP(S) proxy URL for all outbound CLI requests (e.g., `http://proxy.example.com:8080`) (v1.0.64+) |
 | `sessionLimits` | Restrict credit or turn usage for a session; limits apply across the current conversation and reset on `/clear` (v1.0.66+) |
-| `stayInAutopilot` | Keep the CLI in autopilot mode after an autopilot task completes, instead of returning to interactive mode (v1.0.69+) |
+| `stayInAutopilot` | Keep the CLI in autopilot mode after an autopilot task completes, instead of returning to interactive mode. Defaults to `true` since v1.0.76 — set to `false` to return to interactive mode after each task (v1.0.69+) |
 
 > **Note**: Older snake_case names (e.g., `include_gitignored`, `auto_updates_channel`) are still accepted for backward compatibility, but camelCase is now the preferred format.
 
@@ -717,6 +717,17 @@ Use `/autopilot` when you want to flip between supervised and unsupervised opera
 
 > **Read-only `gh` CLI commands (v1.0.46+)**: Read-only `gh` commands — such as `gh issue list`, `gh pr view`, `gh run status`, and other commands that don't write to GitHub — are **automatically approved** without a permission prompt. Only commands that write to GitHub (like creating issues, merging PRs) still require explicit approval. This reduces friction during exploratory sessions where you frequently check issue or PR status.
 
+The `/permissions` command *(v1.0.78+)* lets you switch between **approval modes** mid-session without restarting:
+
+```
+/permissions          # view current approval mode
+/permissions allow    # approve all tool requests (equivalent to /allow-all on)
+/permissions ask      # return to interactive approval mode
+/permissions auto     # use the LLM judge for automatic risk-based approval
+```
+
+This provides a unified entry point for managing how Copilot requests your approval for tool use, complementing the existing `/allow-all` and `/autopilot` commands.
+
 The `--effort` flag (shorthand for `--reasoning-effort`) controls how much computational reasoning the model applies to a request:
 
 ```bash
@@ -761,6 +772,10 @@ copilot --no-sandbox -p "Set up development environment with system tools"
 
 These flags apply only to the current invocation — your persisted sandbox preference remains unchanged.
 
+> **`allowDevToolCaches` sandbox setting (v1.0.78+)**: When the sandbox is enabled, the new `allowDevToolCaches` setting (on by default) grants sandboxed builds access to toolchain caches, registries, and package installs — so builds work without extra setup. Set it to `false` to opt out and run with a fully isolated environment.
+
+> **Enterprise MDM sandbox policy (v1.0.77+)**: On macOS and Windows, administrators can enforce sandbox policies via native MDM settings. Managed settings tighten (but never loosen) the user's sandbox policy. The `/sandbox` dialog surfaces org-configured values with locked fields, so users can confirm what is enforced by their organization.
+
 The `--attachment` flag (available in prompt mode, `-p`) lets you attach files — images or native documents — to the initial prompt in non-interactive mode:
 
 ```bash
@@ -783,6 +798,18 @@ copilot --config-dir ~/.my-copilot-config
 ```
 
 Set `COPILOT_HOME` in your shell profile to use a custom config directory across all sessions. This is especially useful when running multiple Copilot configurations for different projects or teams.
+
+### Authentication and Login
+
+The `copilot login` command authenticates with your GitHub account. Starting with **v1.0.77**, the default login flow on local interactive terminals is **browser-based (web) OAuth**, which opens a browser window for authentication:
+
+```bash
+copilot login           # opens browser for authentication (default on local terminals)
+copilot login --web-flow    # explicitly use browser-based OAuth
+copilot login --device-code # use device code flow (default on remote/headless terminals)
+```
+
+The device code flow (where you type a code at github.com/login/device) remains the default when running on remote or headless terminals where a browser cannot be opened. You can also choose between flows interactively using the `/login` command inside a session.
 
 ### Shell Completion
 
