@@ -3,12 +3,7 @@ title: 'Copilot Configuration Basics'
 description: 'Learn how to configure GitHub Copilot at user, workspace, and repository levels to optimize your AI-assisted development experience.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
-estimatedReadingTime: '10 minutes'
-tags:
-  - configuration
-  - setup
-  - fundamentals
+lastUpdated: 2026-08-01
 relatedArticles:
   - ./what-are-agents-skills-instructions.md
   - ./understanding-copilot-context.md
@@ -429,6 +424,7 @@ CLI settings use **camelCase** naming. Key settings added in recent releases:
 | `proxy` | HTTP(S) proxy URL for all outbound CLI requests (e.g., `http://proxy.example.com:8080`) (v1.0.64+) |
 | `sessionLimits` | Restrict credit or turn usage for a session; limits apply across the current conversation and reset on `/clear` (v1.0.66+) |
 | `stayInAutopilot` | Keep the CLI in autopilot mode after an autopilot task completes, instead of returning to interactive mode (v1.0.69+) |
+| `allowDevToolCaches` | *(v1.0.78+)* Grant sandboxed builds access to toolchain caches, registries, and package installs so builds work without extra setup. On by default; set to `false` to opt out. |
 
 > **Note**: Older snake_case names (e.g., `include_gitignored`, `auto_updates_channel`) are still accepted for backward compatibility, but camelCase is now the preferred format.
 
@@ -506,6 +502,14 @@ The `/session delete` command removes sessions you no longer need:
 You can also press **x** on a highlighted session in the session picker (`--resume`) to delete it directly from the list.
 
 In the session picker, press **`s`** to cycle the sort order: relevance, last used, created, or name. The picker also shows the branch name and idle/in-use status for each session.
+
+**Sessions sidebar for parallel work** *(v1.0.76+, experimental)*: Enable the **Sessions sidebar** to manage multiple concurrent Copilot CLI sessions from a single terminal window. The sidebar shows all active sessions and their status at a glance, lets you switch between them, and lets you spawn new sessions without opening additional terminals:
+
+```
+/experimental on     # enable experimental features
+```
+
+Once experimental mode is on, the sidebar activates automatically in split-view. You can use `/session` commands to switch between sessions in the sidebar, and each session runs independently with its own context and tool state.
 
 The `/rewind` command opens a timeline picker that lets you roll back the conversation to any earlier point in history, reverting both the conversation and any file changes made after that point. You can also trigger it by pressing **double-Esc**:
 
@@ -665,6 +669,14 @@ The `/usage` command displays session metrics such as the number of tokens consu
 /usage
 ```
 
+The `/limits predict` command *(v1.0.76+)* analyzes your current session and similar past sessions to **suggest an appropriate AI-credit limit** before you begin a long task:
+
+```
+/limits predict
+```
+
+This helps you set a `sessionLimits` budget that matches the actual cost of the work you are about to do, rather than guessing. It is especially useful before launching autopilot tasks where you want a safety cap without setting it too low.
+
 The `/compact` command summarizes the conversation history to free up context window space while preserving the thread of the conversation. Use it when your context is getting full but you do not want to start a fresh session:
 
 ```
@@ -702,6 +714,14 @@ The `/allow-all` command (also accessible as `/yolo`) enables autopilot mode, wh
 > **Note**: `/allow-all on` permissions persist after `/clear` starts a new session, so you don't need to re-enable it each time.
 
 > **ACP clients (v1.0.39+)**: ACP clients can also toggle allow-all mode programmatically via session configuration, without issuing a slash command. This is useful for automated pipelines that drive Copilot CLI through the ACP protocol.
+
+The `/permissions` command *(v1.0.78+)* lets you switch between **approval modes** — the levels of autonomy the agent operates with — during a live session:
+
+```
+/permissions
+```
+
+This opens an interactive picker where you can choose between fully interactive (confirm every tool use), auto (LLM judge evaluates each request), and allow-all (approve everything) modes. Use `/permissions` as a convenient alternative to `/allow-all` when you want to review and switch the active approval mode from a single dialog rather than remembering specific command variants.
 
 The `/autopilot` command (v1.0.45+) is a quick in-session toggle that switches between **interactive mode** (where the agent pauses to ask for confirmation before tool use) and **autopilot mode** (where it runs autonomously). Unlike `/allow-all` which specifically controls whether tool permissions are required, `/autopilot` toggles the overall agent mode:
 
@@ -783,6 +803,23 @@ copilot --config-dir ~/.my-copilot-config
 ```
 
 Set `COPILOT_HOME` in your shell profile to use a custom config directory across all sessions. This is especially useful when running multiple Copilot configurations for different projects or teams.
+
+### Authentication
+
+Sign in to GitHub Copilot CLI using the `copilot login` command:
+
+```bash
+copilot login
+```
+
+*(v1.0.77+)* **Web OAuth login** is now the default login flow for local interactive terminals. When you run `copilot login`, your browser opens to complete authentication — no device code required. On remote or headless terminals (SSH sessions, CI), the device code flow remains the default. You can force a specific flow with:
+
+```bash
+copilot login --web-flow      # force browser-based OAuth
+copilot login --device-code   # force device code flow
+```
+
+You can also choose the flow interactively from within a session using the `/login` command.
 
 ### Shell Completion
 
