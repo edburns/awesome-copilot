@@ -3,7 +3,7 @@ title: 'Installing and Using Plugins'
 description: 'Learn how to find, install, and manage plugins that extend GitHub Copilot CLI with reusable agents, skills, hooks, and integrations.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
+lastUpdated: 2026-08-02
 estimatedReadingTime: '8 minutes'
 tags:
   - plugins
@@ -231,6 +231,18 @@ copilot --plugin-dir /path/to/my-plugin
 ```
 
 Plugins loaded this way appear in `/plugin list` under a separate **External Plugins** section, clearly distinguished from marketplace-installed plugins. This is useful for testing local plugins in development or loading private plugins that aren't published to any marketplace.
+
+### Enabling and Disabling Plugins at Runtime
+
+*(v1.0.76+)* You can enable or disable installed plugins — and their individual components — without uninstalling them. Use the `/plugins` command inside an interactive Copilot session to open the plugin management interface, which shows controls for:
+
+- **Plugins** — enable or disable an entire plugin (all its agents, skills, hooks, and servers)
+- **Agents** — enable or disable individual agents from any installed plugin
+- **Instructions** — toggle per-plugin instruction files
+- **LSP servers** — enable or disable language server integrations
+- **Hooks** — enable or disable individual hooks without removing the plugin
+
+This is useful when you temporarily want to suppress a hook (e.g., a slow linting step during exploratory work) or disable an agent you're not using without losing the plugin's other components.
 
 ### Where Plugins Are Stored
 

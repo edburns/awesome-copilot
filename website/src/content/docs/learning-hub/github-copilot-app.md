@@ -3,7 +3,7 @@ title: 'Getting Started with the GitHub Copilot app'
 description: 'Learn about the GitHub Copilot app, a desktop experience built for agent-native development. Understand its key features and who it''s for.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-06-17
+lastUpdated: 2026-08-02
 estimatedReadingTime: '8 minutes'
 tags:
   - copilot-app
@@ -88,6 +88,22 @@ For a hands-on guide to building canvases with `/create-canvas`, see [Working wi
 
 You control the automation level—decide whether Agent Merge should just run CI, address feedback, or go all the way to merging. It's a way to let Copilot handle the tedious parts of the review and merge process.
 
+### Sessions Sidebar (Copilot CLI, Experimental)
+
+*(v1.0.76+, experimental)* The Copilot CLI now includes a **Sessions sidebar** for managing multiple concurrent terminal sessions. This brings multi-session management to the CLI itself:
+
+- Switch between active sessions without leaving the terminal
+- Spawn new sessions from the sidebar
+- See the status of each session at a glance (running, idle, completed)
+
+To enable it, turn on experimental mode in an interactive Copilot session:
+
+```
+/experimental on
+```
+
+The sidebar appears alongside your current session. This complements the Copilot App's My Work view for users who prefer to stay in the terminal.
+
 ## Who is the Copilot app for?
 
 The Copilot app isn't a replacement for existing Copilot experiences—it's another tool in the toolbox. Here's who it serves best:
@@ -133,7 +149,7 @@ To use the GitHub Copilot app, you need:
 
 1. Visit [GitHub Copilot app](https://github.com/features/ai/github-app) and download the installer for your platform
 2. Install and launch the app
-3. Authenticate with your GitHub account
+3. Authenticate with your GitHub account — on local interactive terminals, `copilot login` now defaults to a **browser-based (web) OAuth flow** (v1.0.77+). A browser window opens for you to authorize, which is faster and more reliable than device codes. On headless or remote terminals, device code login remains the default. You can also force a mode with `--web-flow` or `--device-code`, or choose interactively with `/login`.
 4. Connect your repositories
 
 ### Creating Your First Session
