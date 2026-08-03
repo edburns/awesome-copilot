@@ -3,7 +3,7 @@ title: 'Copilot Configuration Basics'
 description: 'Learn how to configure GitHub Copilot at user, workspace, and repository levels to optimize your AI-assisted development experience.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
+lastUpdated: 2026-08-03
 estimatedReadingTime: '10 minutes'
 tags:
   - configuration
@@ -541,7 +541,7 @@ The `/cd` command changes the working directory for the current session. Since v
 
 This is useful when you have multiple backgrounded sessions each focused on a different project directory.
 
-The `/worktree` command (v1.0.61+, also aliased `/move`) creates a new git worktree and switches into it, moving any uncommitted changes along. This lets you start working on a parallel branch without leaving your current terminal session:
+The `/worktree` command (v1.0.61+) creates a new git worktree on a new branch and switches into it, **leaving any uncommitted changes behind** in the original worktree. This lets you start working on a parallel branch without leaving your current terminal session:
 
 ```
 /worktree my-feature-branch
@@ -555,7 +555,23 @@ In v1.0.66+, you can pass a task description to `/worktree` to name the branch f
 
 This creates a branch named from your task description and begins working on it immediately, making it easy to spin up parallel work without stopping to think of a branch name.
 
-After the command runs, the session is inside the new worktree. Use this when you want to work on a second task in parallel without stashing changes or opening a new terminal. In v1.0.64+ you can also use the experimental `--worktree` flag at startup (`copilot -w [name]`) to create or reuse a worktree under `<repo>.worktrees/` before the session begins.
+After the command runs, the session is inside the new worktree. Use this when you want to work on a second task in parallel without taking your current changes with you. In v1.0.64+ you can also use the experimental `--worktree` flag at startup (`copilot -w [name]`) to create or reuse a worktree under `<repo>.worktrees/` before the session begins.
+
+The `/move` command (v1.0.72+) is the companion to `/worktree` — it creates a new git worktree and **carries your uncommitted changes** into the new worktree. Use `/move` when you have started work on the wrong branch and want to continue in a clean worktree:
+
+```
+/move my-feature-branch
+```
+
+> **Summary**: `/worktree` leaves changes behind (start fresh on a new branch); `/move` takes changes with you (continue your in-progress work on a new branch).
+
+The `/new-worktree` command (v1.0.78+, experimental) creates a new git worktree and immediately starts a **new conversation** in it, independent of your current session. Unlike `/worktree` which switches the current session into the new worktree, `/new-worktree` spawns a fresh session alongside the existing one — useful when you want to keep your current conversation and context intact while dispatching parallel work:
+
+```
+/new-worktree
+```
+
+> **Experimental**: `/new-worktree` requires experimental mode. Enable it with `/experimental on` first.
 
 The `/every` command (also available as `/loop` since v1.0.64) schedules a recurring prompt to run automatically at a specified interval. The companion `/after` command runs a prompt once after a specified delay. Both are useful for self-paced automation — polling for results, periodically summarizing progress, or triggering other slash commands on a timer:
 
@@ -714,6 +730,14 @@ Use `/autopilot` when you want to flip between supervised and unsupervised opera
 > **Enhanced autopilot (v1.0.64+)**: When autopilot mode is active — including when launched with `--autopilot` at startup or during automatic continuation turns — the agent automatically handles elicitation dialogs, `ask_user` prompts, sampling requests, and permission prompts without surfacing them as interactive dialogs. This means long-running automated sessions can proceed end-to-end without manual confirmation steps.
 
 > **Auto allow-all mode (v1.0.69+)**: In addition to the standard allow-all mode (which approves everything), the CLI now supports an **auto allow-all** mode that uses an LLM judge to evaluate each tool request. When enabled, the judge automatically approves requests it evaluates as acceptable, and asks you for manual confirmation only for requests it considers risky. This gives you a middle ground between full autopilot and fully supervised operation — most routine actions proceed automatically while unusual or potentially dangerous actions still surface for your review. As of v1.0.69-3, this mode requires experimental features to be enabled — use `/experimental on` or start the CLI with `--experimental` — then activate it with `/allow-all auto`. The previous `AUTO_APPROVAL` environment variable approach has been removed in favour of experimental mode.
+
+The `/permissions` command (v1.0.78+) provides a unified interface for switching between approval modes mid-session:
+
+```
+/permissions
+```
+
+Opening `/permissions` shows a menu of available approval modes — **interactive** (confirm each tool call), **autopilot** (approve all), and **auto** (LLM-judged) — so you can switch modes without remembering the specific `/allow-all` or `/autopilot` subcommands. It is an alias-friendly alternative to the individual commands when you just want to quickly change how Copilot asks for permission.
 
 > **Read-only `gh` CLI commands (v1.0.46+)**: Read-only `gh` commands — such as `gh issue list`, `gh pr view`, `gh run status`, and other commands that don't write to GitHub — are **automatically approved** without a permission prompt. Only commands that write to GitHub (like creating issues, merging PRs) still require explicit approval. This reduces friction during exploratory sessions where you frequently check issue or PR status.
 
