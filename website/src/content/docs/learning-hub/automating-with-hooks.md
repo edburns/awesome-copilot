@@ -3,7 +3,7 @@ title: 'Automating with Hooks'
 description: 'Learn how to use hooks to automate lifecycle events like formatting, linting, and governance checks during Copilot agent sessions.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
+lastUpdated: 2026-08-04
 estimatedReadingTime: '8 minutes'
 tags:
   - hooks
@@ -88,7 +88,7 @@ Hooks can trigger on several lifecycle events:
 | Event | When It Fires | Common Use Cases |
 |-------|---------------|------------------|
 | `sessionStart` | Agent session begins or resumes | Initialize environments, log session starts, validate project state |
-| `sessionEnd` | Agent session completes or is terminated | Clean up temp files, generate reports, send notifications |
+| `sessionEnd` | Agent session completes or is terminated | Clean up temp files, generate reports, send notifications. When running with `-p` or piped stdin (`copilot < input.txt`), the hook fires once per completed agent turn with `reason` `complete` (or `error` on failure), rather than once at shutdown with `user_exit` (v1.0.78+). If the run exits before completing a turn, no `sessionEnd` hook fires. |
 | `userPromptSubmitted` | User submits a prompt | Log requests for auditing and compliance; handle requests directly without invoking the LLM (v1.0.44+); inject `additionalContext` into the model prompt (v1.0.65+) |
 | `preToolUse` | Before the agent uses any tool (e.g., `bash`, `edit`) | **Approve or deny** tool executions, block dangerous commands, enforce security policies |
 | `postToolUse` | After a tool **successfully** completes execution | Log results, track usage, format code after edits |

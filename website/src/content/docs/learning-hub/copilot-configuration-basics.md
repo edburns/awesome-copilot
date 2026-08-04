@@ -3,7 +3,7 @@ title: 'Copilot Configuration Basics'
 description: 'Learn how to configure GitHub Copilot at user, workspace, and repository levels to optimize your AI-assisted development experience.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
+lastUpdated: 2026-08-04
 estimatedReadingTime: '10 minutes'
 tags:
   - configuration
@@ -429,6 +429,7 @@ CLI settings use **camelCase** naming. Key settings added in recent releases:
 | `proxy` | HTTP(S) proxy URL for all outbound CLI requests (e.g., `http://proxy.example.com:8080`) (v1.0.64+) |
 | `sessionLimits` | Restrict credit or turn usage for a session; limits apply across the current conversation and reset on `/clear` (v1.0.66+) |
 | `stayInAutopilot` | Keep the CLI in autopilot mode after an autopilot task completes, instead of returning to interactive mode (v1.0.69+) |
+| `showToolDurations` | Show how long each tool call took in timeline headers; ticking live for calls of at least 5 seconds (v1.0.78+, on by default) |
 
 > **Note**: Older snake_case names (e.g., `include_gitignored`, `auto_updates_channel`) are still accepted for backward compatibility, but camelCase is now the preferred format.
 
@@ -711,6 +712,14 @@ The `/autopilot` command (v1.0.45+) is a quick in-session toggle that switches b
 
 Use `/autopilot` when you want to flip between supervised and unsupervised operation mid-session without typing out the full `/allow-all on` or `/allow-all off` commands.
 
+The `/permissions` command *(v1.0.78+)* gives you fine-grained control over tool approval modes without going through the full `/allow-all` flow:
+
+```
+/permissions        # open the permissions configuration dialog
+```
+
+Use `/permissions` to review and adjust which tools the agent is allowed to run automatically, and to switch between approval modes — interactive (asks before each tool), autopilot (approves all), or auto (uses an AI judge to evaluate requests). This provides a unified place to manage permissions rather than toggling individual settings.
+
 > **Enhanced autopilot (v1.0.64+)**: When autopilot mode is active — including when launched with `--autopilot` at startup or during automatic continuation turns — the agent automatically handles elicitation dialogs, `ask_user` prompts, sampling requests, and permission prompts without surfacing them as interactive dialogs. This means long-running automated sessions can proceed end-to-end without manual confirmation steps.
 
 > **Auto allow-all mode (v1.0.69+)**: In addition to the standard allow-all mode (which approves everything), the CLI now supports an **auto allow-all** mode that uses an LLM judge to evaluate each tool request. When enabled, the judge automatically approves requests it evaluates as acceptable, and asks you for manual confirmation only for requests it considers risky. This gives you a middle ground between full autopilot and fully supervised operation — most routine actions proceed automatically while unusual or potentially dangerous actions still surface for your review. As of v1.0.69-3, this mode requires experimental features to be enabled — use `/experimental on` or start the CLI with `--experimental` — then activate it with `/allow-all auto`. The previous `AUTO_APPROVAL` environment variable approach has been removed in favour of experimental mode.
@@ -760,6 +769,18 @@ copilot --no-sandbox -p "Set up development environment with system tools"
 ```
 
 These flags apply only to the current invocation — your persisted sandbox preference remains unchanged.
+
+### Authentication and Login
+
+The `copilot login` command authenticates you with GitHub. Starting with v1.0.77, the **browser-based OAuth flow** is the default for local interactive terminals — it opens your browser and completes authentication without requiring you to type a device code. Remote and headless environments (such as SSH sessions or CI) still use the device code flow by default:
+
+```bash
+copilot login                # browser flow (default on local interactive terminals)
+copilot login --web-flow     # force browser flow
+copilot login --device-code  # force device code flow (for remote/headless)
+```
+
+You can also use the interactive `/login` command within a session to switch accounts or re-authenticate.
 
 The `--attachment` flag (available in prompt mode, `-p`) lets you attach files — images or native documents — to the initial prompt in non-interactive mode:
 
