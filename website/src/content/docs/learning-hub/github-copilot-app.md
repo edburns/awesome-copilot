@@ -3,7 +3,7 @@ title: 'Getting Started with the GitHub Copilot app'
 description: 'Learn about the GitHub Copilot app, a desktop experience built for agent-native development. Understand its key features and who it''s for.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-06-17
+lastUpdated: 2026-08-08
 estimatedReadingTime: '8 minutes'
 tags:
   - copilot-app
@@ -66,6 +66,22 @@ Each session the Copilot app creates runs in its own **git worktree**—a real, 
 - You can pick up a session from any device, on any worktree
 
 This makes it easy to dispatch multiple agents and trust they won't interfere with each other.
+
+### Multiple Concurrent Sessions (Sessions Tab)
+
+*(v1.0.79-5+)* The **Sessions tab** in the sidebar lets you manage multiple active sessions from a single window. You can switch between sessions, monitor their status, and keep several tasks running in parallel without juggling separate windows. Each session retains its own timeline, worktree, and conversation context.
+
+This pairs naturally with the existing **worktree** support — every session runs in its own isolated git worktree, so multiple parallel tasks never interfere with each other. You can also open a new worktree in a fresh conversation from an existing session using the `/new-worktree` command (v1.0.78+).
+
+### Opening the App from the CLI
+
+*(v1.0.79-7+)* If you start a session in Copilot CLI and want to continue it visually, the `/app` command opens the current session in the GitHub Copilot app (requires app v1.1.3 or later):
+
+```bash
+/app
+```
+
+This means you can start a task in the terminal and seamlessly hand it off to the visual Copilot app without losing any context.
 
 ### Canvases
 

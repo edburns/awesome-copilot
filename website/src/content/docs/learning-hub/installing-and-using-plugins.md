@@ -3,7 +3,7 @@ title: 'Installing and Using Plugins'
 description: 'Learn how to find, install, and manage plugins that extend GitHub Copilot CLI with reusable agents, skills, hooks, and integrations.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
+lastUpdated: 2026-08-08
 estimatedReadingTime: '8 minutes'
 tags:
   - plugins
@@ -33,7 +33,7 @@ A plugin bundles one or more of the following components:
 | **Hooks** | Event handlers that intercept agent behavior | `hooks.json` or `hooks/` |
 | **MCP Servers** | Model Context Protocol integrations for external tools | `.mcp.json` or `.github/mcp.json` |
 | **LSP Servers** | Language Server Protocol integrations | `lsp.json` or `.github/lsp.json` |
-| **Extensions** | IDE extensions installable via the plugin marketplace (v1.0.62+) | `extensions/` |
+| **Extensions** | IDE extensions installable via the plugin marketplace; first-party plugins can also ship extensions under a `com.github.copilot/extensions/` directory (v1.0.62+) | `extensions/` |
 
 A plugin might include all of these or just one — for example, a plugin could provide a single specialized agent, or an entire development toolkit with multiple agents, skills, hooks, and MCP server configurations working together.
 
@@ -220,6 +220,25 @@ copilot plugin marketplace update
 
 # Remove a plugin
 copilot plugin uninstall my-plugin
+```
+
+> **Auto-updates (v1.0.78+)**: First-party plugins automatically update to their latest version at session start. You don't need to run `plugin update` manually for official plugins.
+
+The `/plugins` command inside a session gives you full control over plugins, MCP servers, and skills with a unified interface:
+
+```bash
+# Inside a session — enable, disable, update, or remove a plugin
+/plugins enable my-plugin
+/plugins disable my-plugin
+/plugins update my-plugin
+/plugins remove my-plugin
+
+# Install a skill directly (v1.0.72+)
+/plugins install --skill database-migrations@awesome-copilot
+
+# Manage MCP servers and skills via the same interface
+/plugins disable --mcp my-mcp-server
+/plugins disable --skill database-migrations
 ```
 
 ### Loading Plugins from a Local Directory
