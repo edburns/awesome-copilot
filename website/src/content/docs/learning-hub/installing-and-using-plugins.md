@@ -3,7 +3,7 @@ title: 'Installing and Using Plugins'
 description: 'Learn how to find, install, and manage plugins that extend GitHub Copilot CLI with reusable agents, skills, hooks, and integrations.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-08-04
+lastUpdated: 2026-08-10
 relatedArticles:
   - ./building-custom-agents.md
   - ./creating-effective-skills.md
@@ -176,6 +176,26 @@ Pinning to a SHA guarantees that everyone on the team installs plugins from exac
 - **Reproducible CI environments** — ensure builds always use the same plugin versions
 - **Change control** — review and approve plugin updates before rolling them out team-wide
 - **Stability** — prevent breaking changes in upstream marketplaces from impacting your team without notice
+
+### Auto-Updating an Extra Marketplace
+
+*(v1.0.79+)* By default, plugins from an `extraKnownMarketplaces` entry are not automatically updated. Set `"autoUpdate": true` on the entry to have its plugins update automatically at the start of each session:
+
+```json
+{
+  "extraKnownMarketplaces": [
+    {
+      "name": "my-org-plugins",
+      "source": "my-org/internal-plugins",
+      "autoUpdate": true
+    }
+  ]
+}
+```
+
+This is useful when you want a team-wide marketplace to always stay current without requiring each developer to run `copilot plugin update` manually — combine it with `sha` pinning if you want auto-updates gated behind an explicit commit bump instead.
+
+> **First-party plugins** *(v1.0.78+)*: Plugins from the official `copilot-plugins` marketplace automatically update to their latest version at session start, regardless of the `autoUpdate` setting.
 
 ## Installing Plugins
 
