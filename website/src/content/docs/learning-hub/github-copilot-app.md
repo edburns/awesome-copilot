@@ -3,7 +3,7 @@ title: 'Getting Started with the GitHub Copilot app'
 description: 'Learn about the GitHub Copilot app, a desktop experience built for agent-native development. Understand its key features and who it''s for.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-08-07
+lastUpdated: 2026-08-11
 estimatedReadingTime: '8 minutes'
 tags:
   - copilot-app
@@ -68,6 +68,8 @@ Each session the Copilot app creates runs in its own **git worktree**—a real, 
 
 This makes it easy to dispatch multiple agents and trust they won't interfere with each other.
 
+*(v1.1.7+)* When an orchestrator session spawns child sessions, it can now run them directly in the parent project's existing local checkout instead of always creating a new isolated worktree—useful for quick follow-up tasks that don't need full isolation.
+
 ### Running in the Background
 
 Closing the app's main window keeps it running in the background instead of quitting, with tray (Windows/Linux) or Dock (macOS) support to bring it back. This means scheduled automations and in-progress sessions keep running even when the window isn't open.
@@ -97,7 +99,13 @@ Agent Merge also understands **stacked pull requests**: it shows a stack summary
 
 ### Requesting Code Reviews
 
-From the app, you can request a Copilot code review on a pull request—and re-request a review even from reviewers who already responded—without leaving the session. This keeps the review loop inside the same workspace where the change was made.
+From the app, you can request a Copilot code review on a pull request—and re-request a review even from reviewers who already responded—without leaving the session. This keeps the review loop inside the same workspace where the change was made. Outdated local review comments and conversations can be cleared from the Changes view *(v1.1.6+)* without affecting the review data stored on GitHub, and pull request review comments now show an **Outdated** badge when the underlying code has changed since the comment was made.
+
+### Managing and Resuming Sessions
+
+*(v1.1.4+)* Hovering over a session in the sidebar shows a **Resume** button so you can restart an interrupted or errored session without opening it first. Pinned sessions can be dragged into a custom order that persists across restarts, and permission modes (interactive, autopilot, auto, plan) are aligned with the CLI's `/permissions` model while keeping the app's existing shortcuts like `/yolo`.
+
+*(v1.1.7+)* You can ask a follow-up question in **Side chat** when a session pauses to ask you something, letting you explore options without committing to an answer right away. The My Work view also automatically detects when a connected repository is renamed or transferred on GitHub and updates your local project to match, instead of requiring you to reopen the branch picker.
 
 ## Who is the Copilot app for?
 
