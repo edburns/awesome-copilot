@@ -3,7 +3,7 @@ title: 'Getting Started with the GitHub Copilot app'
 description: 'Learn about the GitHub Copilot app, a desktop experience built for agent-native development. Understand its key features and who it''s for.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-08-07
+lastUpdated: 2026-08-18
 estimatedReadingTime: '8 minutes'
 tags:
   - copilot-app
@@ -98,6 +98,16 @@ Agent Merge also understands **stacked pull requests**: it shows a stack summary
 ### Requesting Code Reviews
 
 From the app, you can request a Copilot code review on a pull request—and re-request a review even from reviewers who already responded—without leaving the session. This keeps the review loop inside the same workspace where the change was made.
+
+Agents can also **attach screenshots, diagrams, and recordings** directly to pull request descriptions and comments — useful for illustrating UI changes or documenting visual test results without requiring staff access.
+
+### Keeping Plugins and Skills Up to Date
+
+From **Customize → Plugins**, you can update installed plugins individually or all at once, and see each plugin's currently installed version. As of the latest app releases, you can also set plugins (including their bundled extensions) to **update automatically**, so you don't have to manually check for new versions. Plugins from the official marketplace already auto-update by default; this extends the same convenience to community plugins.
+
+The app also lets you **create, edit, and remove personal skills** directly from Customize, with a Markdown preview and validation as you write — no need to hand-edit `SKILL.md` files for quick personal utilities.
+
+In the diff view, files marked as generated (build output, lockfiles, etc.) are now automatically collapsed and labeled with a **Generated** tag, keeping review focused on hand-written changes.
 
 ## Who is the Copilot app for?
 
