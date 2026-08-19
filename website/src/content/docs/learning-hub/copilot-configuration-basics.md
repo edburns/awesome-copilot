@@ -823,6 +823,22 @@ These flags apply only to the current invocation — your persisted sandbox pref
 
 **`worktreeBaseRef` setting** *(v1.0.79-8+)*: Controls whether `/worktree`, `/worktree new`, and the `--worktree` startup flag create the new worktree from `HEAD` or from the remote default branch. All three now default to `HEAD`; previously `--worktree` defaulted to starting from the remote default branch. Set this in `/settings` if you want worktrees to branch from the remote default instead.
 
+**`/sandbox policy`** *(v1.0.79+)*: Shows the effective sandbox policy for the current session — the resolved read/write paths, explicit denials, and network access rules after merging user, repository, and any enterprise-managed settings. Use it to quickly confirm what the sandbox actually allows without piecing it together from multiple settings files:
+
+```
+/sandbox policy
+```
+
+This is especially useful in organisations that enforce a managed sandbox floor, since it surfaces the org-configured values alongside your own so you can see which fields are locked.
+
+**`ask_user` multi-select "Other" option** *(v1.0.79+)*: When the agent asks a multi-select question via `ask_user`, the prompt now includes an **Other** option for free-text answers, so you're no longer limited to the suggested choices when none of them quite fit.
+
+**`/app` command** *(v1.0.79+)*: Opens the current CLI session in the GitHub Copilot desktop app (requires GitHub Copilot app v1.1.3 or later), landing directly on that session instead of the app's Home screen in the wrong folder:
+
+```
+/app
+```
+
 The `--attachment` flag (available in prompt mode, `-p`) lets you attach files — images or native documents — to the initial prompt in non-interactive mode:
 
 **Browser-based OAuth login** *(v1.0.77+)*: `copilot login` now defaults to the browser (web) flow on local interactive terminals. A browser tab opens, you authenticate with GitHub, and the CLI is authorized without typing a device code. On remote or headless terminals (SSH sessions, CI), device code remains the default. You can force a specific flow with `--web-flow` or `--device-code`, or choose interactively with the `/login` command:
