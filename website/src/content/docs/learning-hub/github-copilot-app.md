@@ -109,6 +109,13 @@ Agent Merge also understands **stacked pull requests**: it shows a stack summary
 
 From the app, you can request a Copilot code review on a pull request—and re-request a review even from reviewers who already responded—without leaving the session. This keeps the review loop inside the same workspace where the change was made.
 
+### Recent Additions *(v1.1.15+)*
+
+- **Attach images and videos to pull request descriptions**: Paste, drag, or select files to attach directly, alongside the existing link action.
+- **Install MCP servers via deep link**: Opens a prefilled review form so you can confirm the server's details before adding it, instead of manually filling out the connection form.
+- **`/goal` command**: Set a persistent objective for autopilot to work toward across a local session, so long-running autonomous work stays anchored to your intent.
+- **Editing and saving files across environments**: Whole-file diff edits now work in WSL, Direct, and Mission Control workspaces, with conflict detection if a file changes remotely before you save.
+
 ## Who is the Copilot app for?
 
 The Copilot app isn't a replacement for existing Copilot experiences—it's another tool in the toolbox. Here's who it serves best:

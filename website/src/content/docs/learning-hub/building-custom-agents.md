@@ -3,7 +3,7 @@ title: 'Building Custom Agents'
 description: 'Learn how to create specialized GitHub Copilot agents with custom personas, tool integrations, and domain expertise.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-08-09
+lastUpdated: 2026-09-04
 estimatedReadingTime: '10 minutes'
 tags:
   - agents
@@ -71,7 +71,19 @@ tools: ['codebase', 'terminal', 'github']
 
 **description** (required): A clear summary of what the agent does. This is shown in the agent picker and helps users find the right agent.
 
-**model** (recommended): The AI model that powers the agent. Choose based on the complexity of the task—use more capable models for nuanced reasoning.
+**model** (recommended): The AI model that powers the agent. Choose based on the complexity of the task—use more capable models for nuanced reasoning. *(v1.0.83+)*: `model` can list several models, tried in order until one is available to your account—useful as a fallback chain when a preferred model is rate-limited or not yet enabled for your plan:
+
+```yaml
+---
+name: 'Security Reviewer'
+description: 'Thorough security audit for OWASP vulnerabilities'
+model: ['Claude Sonnet 5', 'Claude Sonnet 4', 'GPT-5.6']
+model-policy: required
+tools: ['codebase', 'terminal', 'github']
+---
+```
+
+**model-policy** *(v1.0.83+)*: Set to `required` to keep model changes restricted to the models listed in `model`, preventing a user from switching the agent to a model outside that list mid-session.
 
 **reasoningEffort** *(v1.0.66+)*: Override the reasoning effort level for this agent. Accepted values are `low`, `medium`, and `high`. This lets you pin specific agents to a cost/quality tradeoff regardless of the user's global setting — for example, a quick code-formatting agent can use `low` effort, while a security reviewer uses `high`:
 
@@ -259,6 +271,7 @@ The agent can then query your database, analyze query plans, and suggest optimiz
 | Code generation, tool-driven agentic work | GPT-5.6 *(v1.0.70+)* |
 | Code generation, refactoring | GPT-4.1 |
 | Code-specialized tasks, large context | kimi-k2.7-code *(v1.0.68+)*, kimi-k3 *(v1.0.79+)* |
+| Advanced reasoning, longer context budget | claude-fable-5.1 *(v1.0.83+)*, Gemini 3.7 Flash *(v1.0.81+)* |
 | Quick analysis, simple tasks | Claude Haiku or GPT-4.1-mini |
 | Large codebase understanding | Models with larger context windows |
 
