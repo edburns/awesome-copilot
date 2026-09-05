@@ -56,6 +56,8 @@ The Copilot app includes built-in automations that can run scheduled tasks for y
 
 Automations run in the context of a repository, so they can access issues, pull requests, and code. You can also choose whether they run as a plan, an interactive session, or on autopilot.
 
+> **New (v1.1.15+)**: Use the `/goal` command in a local session to set a persistent objective for autopilot to work towards. Unlike a one-off prompt, the goal stays attached to the session so autopilot keeps referring back to it across multiple turns—useful for longer-running autonomous work where you want to steer the agent back on track without repeating the original ask.
+
 ### Isolated Worktrees for Parallel Work
 
 Each session the Copilot app creates runs in its own **git worktree**—a real, isolated copy of your branch. This is critical for parallel agent work:

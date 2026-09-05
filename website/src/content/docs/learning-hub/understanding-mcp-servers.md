@@ -112,6 +112,8 @@ You can also install a specific server by name directly:
 
 This guided flow is the recommended way to add new MCP servers, especially for servers that require multiple configuration values.
 
+> **New (GitHub Copilot app)**: You can also install an MCP server via a **deep link**. Clicking a properly formatted `ghapp://` install link opens a prefilled review form in the app so you can inspect the server's command, args, and required configuration before confirming — useful for sharing a ready-to-install server configuration with teammates without asking them to hand-edit JSON.
+
 ### Configuration Fields
 
 **command**: The executable to run the MCP server (e.g., `npx`, `python`, `docker`).
@@ -206,6 +208,7 @@ Pagination support means these RPCs work reliably even when a server exposes a l
 Some MCP servers require authentication to connect to protected resources. GitHub Copilot CLI supports several authentication approaches:
 
 - **OAuth**: MCP servers can use the OAuth flow to authenticate with external services. The CLI handles the browser redirect and token storage automatically. This also works when running in ACP (Agent Coordination Protocol) mode.
+- **Client ID Metadata Document (CIMD) support**: GitHub Copilot CLI now supports CIMD for MCP OAuth sign-in, letting MCP servers publish client metadata at a URL instead of requiring manual OAuth client registration — simplifying setup for servers that support the CIMD extension to OAuth Dynamic Client Registration.
 - **`client_credentials` grant type**: For fully headless environments where no browser is available and no user interaction is possible (such as server-to-server automation or CI pipelines), MCP servers can authenticate using the OAuth `client_credentials` grant type. This enables machine-to-machine authentication without any browser redirect or device code prompt.
 - **Device code flow (RFC 8628)**: When the CLI runs in a **headless or CI environment** where a browser redirect is not possible, it automatically falls back to the device code flow. You'll see a URL and a code to enter on another device to complete authentication.
 - **`/mcp auth`**: If a token expires or you need to switch accounts, run `/mcp auth` inside a session. This opens the re-authentication UI for any OAuth-enabled MCP server and supports account switching. You can re-authenticate without restarting the session.

@@ -73,6 +73,8 @@ tools: ['codebase', 'terminal', 'github']
 
 **model** (recommended): The AI model that powers the agent. Choose based on the complexity of the task—use more capable models for nuanced reasoning.
 
+> **New (v1.0.83+)**: `model` can list **several models** instead of just one, e.g. `model: ['Claude Sonnet 4.5', 'GPT-5']`. Copilot CLI tries each entry in order until it finds one available to you — useful as a fallback chain when your preferred model is temporarily unavailable. Add `model-policy: required` alongside it to keep the user's model selection pinned to that list for the lifetime of the session, preventing an unrelated model switch from silently overriding the agent's intended model.
+
 **reasoningEffort** *(v1.0.66+)*: Override the reasoning effort level for this agent. Accepted values are `low`, `medium`, and `high`. This lets you pin specific agents to a cost/quality tradeoff regardless of the user's global setting — for example, a quick code-formatting agent can use `low` effort, while a security reviewer uses `high`:
 
 ```yaml
