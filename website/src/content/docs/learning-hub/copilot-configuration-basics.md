@@ -3,7 +3,7 @@ title: 'Copilot Configuration Basics'
 description: 'Learn how to configure GitHub Copilot at user, workspace, and repository levels to optimize your AI-assisted development experience.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-09-01
+lastUpdated: 2026-09-06
 estimatedReadingTime: '10 minutes'
 tags:
   - configuration
@@ -822,6 +822,14 @@ copilot --autopilot --max-autopilot-continues 10 "Refactor the authentication mo
 
 Set it higher for long-running tasks, or lower for tasks where you want more frequent checkpoints. Setting it to `0` disables automatic continuation entirely.
 
+**`/goal` command (v1.0.83+)**: Set a persistent objective for autopilot to work towards across a local session, instead of re-stating your intent each time autopilot continues:
+
+```
+/goal Refactor the payment module to use the new retry policy
+```
+
+The Autopilot status panel shows your last prompt as the inferred objective, and a collapsed goal panel keeps the current goal visible (paused goals show a resume note); use Ctrl+X → G to expand or collapse it. The same capability is available in the GitHub Copilot app as of v1.1.15.
+
 The `--sandbox` and `--no-sandbox` flags *(v1.0.70+)* turn the OS-level shell sandbox on or off for the current session only, without permanently changing your saved sandbox setting. This is useful with `-p` (prompt mode) when you need to temporarily adjust sandbox behavior for a specific automated task:
 
 ```bash
@@ -838,6 +846,8 @@ These flags apply only to the current invocation — your persisted sandbox pref
 **Sandbox auth settings** *(v1.0.79-8+, breaking change)*: The `/sandbox` configuration dialog now groups git, `gh`, and (on macOS) keychain settings under a new **Auth** tab. The underlying settings keys moved from `sandbox.gitAuth`/`sandbox.ghAuth` to `sandbox.auth.git`/`sandbox.auth.gh`. There is no automatic migration — the old keys are silently ignored in settings files, and SDK requests that still send them are rejected as invalid. Update any saved configuration to the new key names.
 
 **`worktreeBaseRef` setting** *(v1.0.79-8+)*: Controls whether `/worktree`, `/worktree new`, and the `--worktree` startup flag create the new worktree from `HEAD` or from the remote default branch. All three now default to `HEAD`; previously `--worktree` defaulted to starting from the remote default branch. Set this in `/settings` if you want worktrees to branch from the remote default instead.
+
+> **Sandbox local network restriction (v1.0.83+, breaking change)**: On macOS and Linux, sandboxed commands can no longer reach services running on your own machine, including a server the sandboxed command itself starts on `127.0.0.1`. This means test suites or dev servers that bind a local port will fail inside the sandbox by default. Turn on **Allow local network** in `/sandbox` if your workflow needs to reach localhost. Linux sandboxing also now requires `slirp4netns`, `nsenter`, `iptables`, `ip6tables`, `iptables-restore`, and `ip6tables-restore` on `PATH` — install them if sandboxed commands start failing to launch.
 
 The `--attachment` flag (available in prompt mode, `-p`) lets you attach files — images or native documents — to the initial prompt in non-interactive mode:
 

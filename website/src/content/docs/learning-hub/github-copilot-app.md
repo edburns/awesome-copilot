@@ -3,7 +3,7 @@ title: 'Getting Started with the GitHub Copilot app'
 description: 'Learn about the GitHub Copilot app, a desktop experience built for agent-native development. Understand its key features and who it''s for.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-09-02
+lastUpdated: 2026-09-06
 estimatedReadingTime: '8 minutes'
 tags:
   - copilot-app
@@ -108,6 +108,12 @@ Agent Merge also understands **stacked pull requests**: it shows a stack summary
 ### Requesting Code Reviews
 
 From the app, you can request a Copilot code review on a pull request—and re-request a review even from reviewers who already responded—without leaving the session. This keeps the review loop inside the same workspace where the change was made.
+
+### Attaching Media and Installing MCP Servers via Deep Link
+
+*(v1.1.15+)* You can attach images and videos directly to pull request descriptions by pasting, dragging, or selecting files, in addition to the existing link action — useful for adding screenshots or screen recordings without leaving the app.
+
+*(v1.1.15+)* MCP servers can now be installed via a deep link: opening the link shows a prefilled review form so you can confirm the server's details before it's added, rather than configuring it by hand.
 
 ## Who is the Copilot app for?
 
