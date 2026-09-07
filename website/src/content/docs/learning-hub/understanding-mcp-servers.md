@@ -215,6 +215,10 @@ Some MCP servers require authentication to connect to protected resources. GitHu
 
 > **Tip**: If your MCP server uses OAuth with Dynamic Client Registration but hosts its authorization metadata at a non-standard URL (as some enterprise servers like Atlassian Rovo do), Copilot CLI handles this automatically.
 
+> **Tip** *(v1.0.83+)*: Copilot CLI supports the Client ID Metadata Document (CIMD) standard for MCP OAuth sign-in, letting MCP servers verify client identity without manual client registration.
+
+*(v1.0.81+)* Copilot CLI, the SDK, IDE integrations, and in-memory clients all support the MCP `2026-07-28` protocol revision.
+
 ## How Agents Use MCP Tools
 
 When an agent declares an MCP server in its `tools` array, Copilot can invoke that server's capabilities during conversation:

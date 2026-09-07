@@ -85,6 +85,29 @@ tools: ['codebase', 'terminal', 'github']
 ---
 ```
 
+**model** *(v1.0.83+)*: You can also list several models here — Copilot CLI tries them in order and uses the first one available to your account:
+
+```yaml
+---
+name: 'Security Reviewer'
+description: 'Expert security auditor for OWASP vulnerabilities'
+model: [Claude Sonnet 4, GPT-5]
+tools: ['codebase', 'terminal', 'github']
+---
+```
+
+**model-policy** *(v1.0.83+)*: Set to `required` to lock the agent to the models listed in `model` and prevent it from switching to a different model mid-session:
+
+```yaml
+---
+name: 'Security Reviewer'
+description: 'Expert security auditor for OWASP vulnerabilities'
+model: [Claude Sonnet 4, GPT-5]
+model-policy: required
+tools: ['codebase', 'terminal', 'github']
+---
+```
+
 **tools** (recommended): An array of built-in tools and MCP servers the agent can access. Common tools include:
 
 | Tool | Purpose |
