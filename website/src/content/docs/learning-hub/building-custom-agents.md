@@ -3,7 +3,7 @@ title: 'Building Custom Agents'
 description: 'Learn how to create specialized GitHub Copilot agents with custom personas, tool integrations, and domain expertise.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-08-09
+lastUpdated: 2026-09-08
 estimatedReadingTime: '10 minutes'
 tags:
   - agents
@@ -81,6 +81,33 @@ name: 'Security Reviewer'
 description: 'Thorough security audit for OWASP vulnerabilities'
 model: Claude Sonnet 4
 reasoningEffort: high
+tools: ['codebase', 'terminal', 'github']
+---
+```
+
+**model fallback list** *(v1.0.83+)*: `model` can accept a list of models instead of a single value. Copilot CLI tries each entry in order until it finds one available to you, which keeps an agent usable even when your preferred model is temporarily unavailable or not enabled for your account:
+
+```yaml
+---
+name: 'Security Reviewer'
+description: 'Thorough security audit for OWASP vulnerabilities'
+model:
+  - Claude Opus 4.5
+  - Claude Sonnet 4.5
+  - GPT-5
+tools: ['codebase', 'terminal', 'github']
+---
+```
+
+Add `model-policy: required` to keep any in-session model changes restricted to that list, preventing the agent from silently switching to a model outside your approved set:
+
+```yaml
+---
+name: 'Security Reviewer'
+model:
+  - Claude Opus 4.5
+  - Claude Sonnet 4.5
+model-policy: required
 tools: ['codebase', 'terminal', 'github']
 ---
 ```
