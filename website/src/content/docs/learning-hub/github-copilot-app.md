@@ -3,7 +3,7 @@ title: 'Getting Started with the GitHub Copilot app'
 description: 'Learn about the GitHub Copilot app, a desktop experience built for agent-native development. Understand its key features and who it''s for.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-09-02
+lastUpdated: 2026-09-09
 estimatedReadingTime: '8 minutes'
 tags:
   - copilot-app
@@ -91,6 +91,8 @@ For a hands-on guide to building canvases with `/create-canvas`, see [Working wi
 - Create, edit, or remove your own **personal skills** directly in the app, without hand-authoring a `SKILL.md` file
 
 This makes Customize a good starting point if you want to extend the app's capabilities but don't need the full `copilot plugin` CLI workflow described in [Installing and Using Plugins](../installing-and-using-plugins/).
+
+> **New (v1.1.16+)**: Type `/settings` in the message composer to open app settings directly, without leaving the conversation. The same release added a pencil tool for freehand annotations on screenshots you attach to a session.
 
 ### Agent Merge
 
