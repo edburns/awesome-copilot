@@ -3,7 +3,7 @@ title: 'Installing and Using Plugins'
 description: 'Learn how to find, install, and manage plugins that extend GitHub Copilot CLI with reusable agents, skills, hooks, and integrations.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-09-01
+lastUpdated: 2026-09-10
 relatedArticles:
   - ./building-custom-agents.md
   - ./creating-effective-skills.md
@@ -254,6 +254,8 @@ This opens an interactive list where each installed plugin and its components ar
 > **Note**: Enabling and disabling hooks and LSP servers individually is temporarily unavailable following the `/plugins` removal — those toggles previously lived only in the retired dashboard.
 
 > **Dashboard available to everyone (v1.0.81+)**: The plugins dashboard (`/plugin`, `/mcp`, and `/skills`) is now on for all users by default. If you need to opt out, set `PLUGINS_DASHBOARD=false`, which also restores the legacy `copilot plugins` command. This opt-out was later removed in the same release, along with the legacy skills picker it kept alive — `/skills`, bare `/mcp`, and `/mcp show` (with no server name) always open the dashboard now, and `/mcp config` opens the dedicated MCP wizard.
+
+> **CLI command split (v1.0.84+)**: The cross-kind `copilot plugins` commands are being replaced by kind-specific commands. `copilot plugin list --kind instruction` and `--kind lsp` are now `copilot instruction list` and `copilot lsp list`. `copilot plugins enable/disable --plugin|--mcp|--skill` are now `copilot plugin enable/disable`, `copilot mcp enable/disable`, and `copilot skill enable/disable`. The old `--scope` spelling on `copilot plugins install --skill` is gone in favor of `copilot skill add [--project]`, and `copilot plugins list --json` now returns a flat array of plugins rather than the cross-kind `{ plugins, errors }` object. Update any scripts that parsed the old JSON shape. `copilot plugin list`, `copilot plugin marketplace list`, and `copilot plugin marketplace browse` also gained a `--json` flag for scripting.
 
 ### Loading Plugins from a Local Directory
 
