@@ -3,7 +3,7 @@ title: 'Getting Started with the GitHub Copilot app'
 description: 'Learn about the GitHub Copilot app, a desktop experience built for agent-native development. Understand its key features and who it''s for.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-09-02
+lastUpdated: 2026-09-11
 estimatedReadingTime: '8 minutes'
 tags:
   - copilot-app
@@ -108,6 +108,18 @@ Agent Merge also understands **stacked pull requests**: it shows a stack summary
 ### Requesting Code Reviews
 
 From the app, you can request a Copilot code review on a pull request—and re-request a review even from reviewers who already responded—without leaving the session. This keeps the review loop inside the same workspace where the change was made.
+
+### Recent App Updates
+
+The Copilot app ships frequent releases with incremental improvements. Some recent additions worth knowing about:
+
+- **Editing issues and pull requests** *(v1.1.18+)*: You can now edit issue and pull request titles and descriptions, and edit, delete, or hide comments—directly from the app, with an edited indicator shown on changed comments.
+- **Fix with instructions** *(v1.1.18+)*: Pull request fix buttons now have a chevron with a "Fix with instructions" option, letting you add guidance before Copilot runs the fix.
+- **`/settings` slash command** *(v1.1.16+)*: Type `/settings` in the message composer to open app settings directly, without leaving your conversation.
+- **Goal pill live status** *(v1.1.17+)*: The Goal pill in the composer (set via `/goal` or `/autopilot`) now shows live status—Active, Paused, or Done—and expands to show the objective, completion summary, pause reason, turn count, and AI Credits usage.
+- **Chats pill** *(v1.1.18+)*: A Chats pill above the composer surfaces unread and input-required status across side chats, with quick navigation between them.
+
+Check the [GitHub Copilot app changelog](https://github.com/github/app/blob/main/changelog.md) for the full list of releases.
 
 ## Who is the Copilot app for?
 
