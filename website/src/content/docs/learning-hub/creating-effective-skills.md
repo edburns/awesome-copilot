@@ -3,7 +3,7 @@ title: 'Creating Effective Skills'
 description: 'Master the art of writing reusable, shareable skill folders that deliver consistent results across your team.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-13
+lastUpdated: 2026-09-12
 estimatedReadingTime: '9 minutes'
 tags:
   - skills
@@ -376,12 +376,17 @@ A: The `copilot skill` subcommand (v1.0.65+) lets you list, add, and remove skil
 
 ```bash
 copilot skill list                      # list all currently loaded skills
-copilot skill add ./my-skill/           # add a skill from a local directory
+copilot skill add ./my-skill/           # add a skill from a local directory (user-level by default)
+copilot skill add ./my-skill/ --project # add a skill scoped to the current repository (v1.0.84+)
 copilot skill add https://example.com/skill.zip  # add a skill from a URL
 copilot skill remove my-skill           # remove an installed skill by name
+copilot skill enable my-skill           # re-enable a disabled skill (v1.0.84+)
+copilot skill disable my-skill          # disable a skill without removing it (v1.0.84+)
 ```
 
 You can also run `/skill` (or the existing `/skills`) inside an interactive session to see what's loaded. The `copilot skill` subcommand is the recommended way to install skills that aren't packaged inside a plugin.
+
+> **Command rename (v1.0.84+)**: `copilot plugins install --skill [--scope project]` has been replaced by `copilot skill add [--project]` above — the `--scope` spelling no longer works.
 
 **Q: How are skills different from prompts?**
 
