@@ -3,7 +3,7 @@ title: 'Getting Started with the GitHub Copilot app'
 description: 'Learn about the GitHub Copilot app, a desktop experience built for agent-native development. Understand its key features and who it''s for.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-09-02
+lastUpdated: 2026-09-13
 estimatedReadingTime: '8 minutes'
 tags:
   - copilot-app
@@ -55,6 +55,18 @@ Instead of checking GitHub, your CLI, and VS Code for updates, everything is in 
 The Copilot app includes built-in automations that can run scheduled tasks for you using the same agentic technology. You can use templates out of the box or create your own.
 
 Automations run in the context of a repository, so they can access issues, pull requests, and code. You can also choose whether they run as a plan, an interactive session, or on autopilot.
+
+### Goals and Persistent Objectives
+
+Set a **Goal** for a session using `/goal`, or start a session directly in autopilot mode with `/autopilot`. *(v1.1.18+)* `/autopilot` now sets a persistent objective the same way `/goal` does, instead of only switching the session's mode—so autopilot sessions keep working toward the stated objective across turns rather than just running unattended. The **Goal pill** in the composer shows live status (Active, Paused, Done) and expands to show the objective, a completion summary, the pause reason (if paused), turn count, and AI Credits usage, so you can check on a long-running goal without opening the full session.
+
+### Editing Issues, Pull Requests, and Comments
+
+*(v1.1.18+)* You can edit issue and pull request titles and descriptions, and edit, delete, or hide comments directly from the app—edited comments show an edited indicator. Pull request fix buttons also gained a **"Fix with instructions"** option (via a chevron next to the button) that lets you add guidance before the agent runs the fix, instead of only triggering a default fix.
+
+### Generated Artifacts in the Files Tab
+
+*(v1.1.20+)* Markdown artifacts generated during a session (for example, a design doc or summary an agent writes) now open in the **Files** tab alongside your repository's own files, with a switcher to move between generated artifacts and added file/folder sources. You can promote a generated artifact into the repository directly from this view instead of copying its contents manually.
 
 ### Isolated Worktrees for Parallel Work
 
