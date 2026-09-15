@@ -3,7 +3,7 @@ title: 'Getting Started with the GitHub Copilot app'
 description: 'Learn about the GitHub Copilot app, a desktop experience built for agent-native development. Understand its key features and who it''s for.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-09-02
+lastUpdated: 2026-09-15
 estimatedReadingTime: '8 minutes'
 tags:
   - copilot-app
@@ -108,6 +108,16 @@ Agent Merge also understands **stacked pull requests**: it shows a stack summary
 ### Requesting Code Reviews
 
 From the app, you can request a Copilot code review on a pull request—and re-request a review even from reviewers who already responded—without leaving the session. This keeps the review loop inside the same workspace where the change was made.
+
+### Recent Enhancements
+
+A few notable additions from recent releases:
+
+- **`/goal`** *(v1.1.15+)* sets a persistent objective for autopilot to work toward in local sessions, so the agent keeps making progress on a larger goal across multiple turns instead of stopping after one task.
+- **`/settings`** *(v1.1.16+)* opens app settings directly from the message composer, without leaving your current session.
+- **Combined model picker** *(v1.1.14+)* merges model, reasoning effort, and context window selection into a single menu in the message composer.
+- **Generated artifacts in the Files tab** *(v1.1.20+/v1.1.21+)*: Markdown files and other generated artifacts now open in the Files tab alongside repository files, with a switcher between sources and an option to promote an artifact into the repository.
+- **"Chat" session type** *(v1.1.20+)*: The "Start from scratch" option in session creation menus and project pickers was renamed to "Chat."
 
 ## Who is the Copilot app for?
 
