@@ -3,7 +3,7 @@ title: 'Getting Started with the GitHub Copilot app'
 description: 'Learn about the GitHub Copilot app, a desktop experience built for agent-native development. Understand its key features and who it''s for.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-09-02
+lastUpdated: 2026-09-16
 estimatedReadingTime: '8 minutes'
 tags:
   - copilot-app
@@ -56,6 +56,10 @@ The Copilot app includes built-in automations that can run scheduled tasks for y
 
 Automations run in the context of a repository, so they can access issues, pull requests, and code. You can also choose whether they run as a plan, an interactive session, or on autopilot.
 
+### Goals and Autopilot
+
+**`/goal` (v1.1.15+)**: Set a persistent objective for autopilot to work towards in local sessions. A Goal pill appears above the composer showing live status (Active, Paused, Done) and expands to show the objective, completion summary, pause reason, turn count, and AI Credits usage — useful for long-running autonomous work where you want a running summary of progress without re-reading the whole transcript.
+
 ### Isolated Worktrees for Parallel Work
 
 Each session the Copilot app creates runs in its own **git worktree**—a real, isolated copy of your branch. This is critical for parallel agent work:
@@ -91,6 +95,12 @@ For a hands-on guide to building canvases with `/create-canvas`, see [Working wi
 - Create, edit, or remove your own **personal skills** directly in the app, without hand-authoring a `SKILL.md` file
 
 This makes Customize a good starting point if you want to extend the app's capabilities but don't need the full `copilot plugin` CLI workflow described in [Installing and Using Plugins](../installing-and-using-plugins/).
+
+### Files Tab and Generated Artifacts
+
+**(v1.1.20+)** Generated artifacts like Markdown files now open in the **Files tab** alongside repository files, with a switcher between the two and an option to promote an artifact into the repository. This makes it easier to review agent-generated documents (design docs, summaries, plans) in the same place you browse project files, and to keep the ones worth committing.
+
+**Plugin agent disambiguation (v1.1.21+)**: Custom agents that share a display name across different installed plugins are now distinguished in the agent picker and `/agent` autocomplete by their owning plugin, so you can tell them apart when multiple plugins ship an agent with the same name.
 
 ### Agent Merge
 

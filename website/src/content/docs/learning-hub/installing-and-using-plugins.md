@@ -3,7 +3,7 @@ title: 'Installing and Using Plugins'
 description: 'Learn how to find, install, and manage plugins that extend GitHub Copilot CLI with reusable agents, skills, hooks, and integrations.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-09-01
+lastUpdated: 2026-09-16
 relatedArticles:
   - ./building-custom-agents.md
   - ./creating-effective-skills.md
@@ -254,6 +254,22 @@ This opens an interactive list where each installed plugin and its components ar
 > **Note**: Enabling and disabling hooks and LSP servers individually is temporarily unavailable following the `/plugins` removal — those toggles previously lived only in the retired dashboard.
 
 > **Dashboard available to everyone (v1.0.81+)**: The plugins dashboard (`/plugin`, `/mcp`, and `/skills`) is now on for all users by default. If you need to opt out, set `PLUGINS_DASHBOARD=false`, which also restores the legacy `copilot plugins` command. This opt-out was later removed in the same release, along with the legacy skills picker it kept alive — `/skills`, bare `/mcp`, and `/mcp show` (with no server name) always open the dashboard now, and `/mcp config` opens the dedicated MCP wizard.
+
+**Non-interactive component management (v1.0.85+)**: The interactive `/plugin`, `/mcp`, and `/skill` toggles now have non-interactive CLI equivalents. `copilot plugin enable|disable`, `copilot mcp enable|disable`, and `copilot skill enable|disable` replace the older cross-kind `copilot plugins enable/disable --plugin|--mcp|--skill` flags, so scripts and CI pipelines can toggle individual components without going through the dashboard:
+
+```bash
+copilot plugin enable my-plugin
+copilot mcp disable my-server
+copilot skill enable my-skill
+```
+
+**Listing instructions and LSP servers (v1.0.85+)**: `copilot instruction list` and `copilot lsp list` are new dedicated commands for listing loaded instructions and LSP servers, replacing `copilot plugins list --kind instruction` and `copilot plugins list --kind lsp`. The `--json` flag was also added to `copilot plugin list`, `copilot plugin marketplace list`, and `copilot plugin marketplace browse` for scripting.
+
+```bash
+copilot instruction list
+copilot lsp list
+copilot plugin list --json
+```
 
 ### Loading Plugins from a Local Directory
 
