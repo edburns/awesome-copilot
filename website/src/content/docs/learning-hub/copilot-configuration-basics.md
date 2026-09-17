@@ -3,7 +3,7 @@ title: 'Copilot Configuration Basics'
 description: 'Learn how to configure GitHub Copilot at user, workspace, and repository levels to optimize your AI-assisted development experience.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-09-12
+lastUpdated: 2026-09-17
 estimatedReadingTime: '10 minutes'
 tags:
   - configuration
@@ -945,6 +945,14 @@ copilot skill enable my-skill    # enable a specific skill
 ### Command-Line Parsing Rewrite
 
 *(v1.0.84+)* Command-line parsing moved from Commander to a Rust-based grammar that mirrors what the CLI actually parses, which also generates shell completions directly from that grammar — so `copilot <TAB>` now offers root flags alongside subcommands, and each subcommand only shows its own options. As a result of this change, some error and help wording changed, `copilot login --host` now works correctly, and `--max-autopilot-continues` no longer accepts scientific notation as a value.
+
+### Concise Transcript View
+
+*(v1.0.85+)* Set `transcriptView` to `"concise"` to group tool activity into expandable work summaries instead of a long scrolling list of individual tool calls — useful for keeping the timeline readable during agent turns that make many tool calls.
+
+### Streamer Mode
+
+*(v1.0.85+)* `/streamer-mode` masks internal model names in `/model`, the footer, and startup diagnostics — useful when streaming or screen-sharing a session and you don't want to reveal which preview models you have access to. Toggling it no longer restarts model initialization, so switching it on or off mid-session is instant.
 
 ## Common Questions
 

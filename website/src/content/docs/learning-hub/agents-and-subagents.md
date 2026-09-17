@@ -3,7 +3,7 @@ title: 'Agents and Subagents'
 description: 'Learn how delegated subagents differ from primary agents, when to use them, and how to launch them in VS Code and Copilot CLI.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-09-12
+lastUpdated: 2026-09-17
 estimatedReadingTime: '9 minutes'
 tags:
   - agents
@@ -157,6 +157,12 @@ Because it runs as a sub-agent layer rather than replacing your primary model, y
 
 > **Note**: This is an experimental feature and may change. Provide feedback via `/feedback` if you find it useful.
 
+### Subagent preferences and context management (v1.0.85+)
+
+Subagent launches now honor explicit `model`, `reasoningEffort`, and `context-tier` preferences set in the applicable global and custom instructions, so a delegated worker consistently gets the model or effort level you configured for it instead of silently falling back to session defaults.
+
+Run `/settings` to opt in to giving agents and subagents their own context management tools, letting a delegated worker manage its own context window (for example, trimming or summarizing history) independently of the parent session.
+
 ## Orchestration patterns that work well
 
 ### Coordinator and worker
@@ -199,6 +205,10 @@ If you share agent files across surfaces, document those differences so users kn
 When an agent delegates work to multiple chats, VS Code's **Agents window** now shows those chats as children of their parent session in the sessions list, so you can see which chats belong together instead of managing a flat list of unrelated sessions. Each chat row shows its own title, status, and pending approvals. A delegated request also includes a source link (for example **Sent by another session**) so you can jump straight back to whichever session or chat initiated it.
 
 This pairs with **improved workspace resolution**: agents can resolve a workspace by project name (for example, "run this in the vscode workspace") in addition to absolute paths, which simplifies prompts that hand off work across multiple repositories.
+
+**Run agent sessions in local Dev Containers** *(VS Code 1.138+, preview)*: Enable `chat.agentHost.devContainer.enabled` in the Agents window to run a delegated agent session inside a local folder's Dev Container instead of on your local machine directly. The agent then uses the project's configured toolchain and dependencies (Docker required) rather than whatever happens to be installed locally — useful when a subagent's task depends on a specific language runtime or CLI version pinned in the project's `devcontainer.json`. This is rolling out gradually, so the setting may need to be enabled manually.
+
+**Shareable automations** *(VS Code 1.138+)*: Automations in the Agents window are now enabled by default, and can be exported and imported so you can share a delegation workflow (for example, a scheduled subagent task) across environments or with your team instead of recreating it by hand.
 
 **Shareable session links** *(VS Code 1.138+)*: Agent Host sessions and chats now provide browser-addressable links, so you can reopen or share a specific Agents window session directly from another app, a GitHub issue, or terminal output — useful when handing off a delegated subagent's work to a teammate for review. You can also start a new session beside the current one in one step, keeping the current work visible while a second session starts.
 
