@@ -202,6 +202,14 @@ This pairs with **improved workspace resolution**: agents can resolve a workspac
 
 **Shareable session links** *(VS Code 1.138+)*: Agent Host sessions and chats now provide browser-addressable links, so you can reopen or share a specific Agents window session directly from another app, a GitHub issue, or terminal output — useful when handing off a delegated subagent's work to a teammate for review. You can also start a new session beside the current one in one step, keeping the current work visible while a second session starts.
 
+**Run agent sessions in local Dev Containers** *(VS Code 1.138+, Agents window only)*: Enable `chat.agentHost.devContainer.enabled` to run an Agent Host session inside a local folder's Dev Container instead of on your host machine. This keeps a delegated agent's tools and dependencies aligned with the project's own toolchain — useful when a subagent needs a specific runtime or CLI version that only exists inside the container. Folders with a supported Dev Container configuration show a **Use Dev Container** action in the folder menu; Docker must be installed locally.
+
+**Expanded Codex support in the agent host** *(VS Code 1.138+)*: The Codex harness can now run in the Agent Host alongside Copilot and Claude, backed by either a GitHub Copilot subscription or a ChatGPT subscription. If you're signed in to both, you can switch between Copilot-backed and ChatGPT-backed models mid-conversation from the model picker, and Codex can use VS Code's full tool surface (built-in, extension, and MCP tools) — relevant if you delegate work to a Codex-backed subagent alongside Copilot ones.
+
+**Create pull requests directly from Agent Host sessions** *(VS Code 1.138+, optional Agent Merge setting)*: A dedicated form lets you review and edit the generated title and description, choose draft status, and configure merge options, then create the pull request or hand it to your agent — useful once a delegated task's Agent Host session has finished its work and is ready to ship.
+
+**Keep completed sessions organized** *(VS Code 1.138+, Preview)*: When all of an inactive session's pull requests have merged, the Agents window can suggest marking it **Done**, and a taskbar/dock/launcher badge (`sessions.showApplicationBadge`) highlights sessions with new results, requests for input, or pull request checks needing attention — helpful for tracking multiple delegated subagent sessions running in parallel without losing track of which ones need you.
+
 ## Common questions
 
 **Do users always invoke subagents directly?**

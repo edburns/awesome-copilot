@@ -946,6 +946,16 @@ copilot skill enable my-skill    # enable a specific skill
 
 *(v1.0.84+)* Command-line parsing moved from Commander to a Rust-based grammar that mirrors what the CLI actually parses, which also generates shell completions directly from that grammar — so `copilot <TAB>` now offers root flags alongside subcommands, and each subcommand only shows its own options. As a result of this change, some error and help wording changed, `copilot login --host` now works correctly, and `--max-autopilot-continues` no longer accepts scientific notation as a value.
 
+### Concise Transcript View and Context Management Opt-In
+
+*(v1.0.85+)* Set `transcriptView` to `"concise"` in `/settings` to group tool activity into expandable work summaries instead of a long scrolling list of individual tool calls — useful for keeping the timeline readable during tasks that make many small tool calls.
+
+*(v1.0.85+)* `/settings` also gained an opt-in for **context management tools for agents and subagents**, giving you more control over how context is curated during delegated work before it counts against your context window.
+
+### Autopilot Stops After Task Completion
+
+*(v1.0.86+)* Autopilot now stops once a task is accepted as complete instead of continuing to run unexpectedly, so you no longer need to manually interrupt it after the objective has been met.
+
 ## Common Questions
 
 **Q: How do I disable Copilot for specific files?**

@@ -281,7 +281,9 @@ tools: ['codebase', 'terminalCommand', 'github']
 
 ### Agent Host
 
-A VS Code component (v1.136+) that lets multiple VS Code windows connect to the same agent session. It runs agent harnesses (such as Copilot or Claude) in a dedicated process built on the open **Agent Host Protocol (AHP)**. The agent host's Copilot harness is powered by the [Copilot SDK](https://www.npmjs.com/package/@github/copilot-sdk), which keeps its behavior aligned with the Copilot CLI, the standalone GitHub Copilot app, and other Copilot products.
+A VS Code component (v1.136+) that lets multiple VS Code windows connect to the same agent session. It runs agent harnesses (such as Copilot, Claude, or Codex) in a dedicated process built on the open **Agent Host Protocol (AHP)**. The agent host's Copilot harness is powered by the [Copilot SDK](https://www.npmjs.com/package/@github/copilot-sdk), which keeps its behavior aligned with the Copilot CLI, the standalone GitHub Copilot app, and other Copilot products.
+
+As of v1.138, the Agent Host can also run sessions inside a project's local **Dev Container** (`chat.agentHost.devContainer.enabled`) so the agent uses the project's own tools and dependencies, and it supports an expanded **Codex** harness that can run with either a GitHub Copilot or a ChatGPT subscription.
 
 **Example**: Starting a session in one VS Code window, then reconnecting to the same live session from a second window without losing state.
 
