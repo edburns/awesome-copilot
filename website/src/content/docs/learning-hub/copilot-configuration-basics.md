@@ -3,7 +3,7 @@ title: 'Copilot Configuration Basics'
 description: 'Learn how to configure GitHub Copilot at user, workspace, and repository levels to optimize your AI-assisted development experience.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-09-12
+lastUpdated: 2026-09-19
 estimatedReadingTime: '10 minutes'
 tags:
   - configuration
@@ -941,6 +941,24 @@ copilot skill enable my-skill    # enable a specific skill
 ### Memory and Session Import
 
 *(v1.0.84+)* New session and memory import commands accept the semantic JSONL interchange format, making it possible to bring saved session history or memory entries into Copilot CLI from an external export rather than starting from scratch.
+
+### Concise Transcript View
+
+*(v1.0.85+)* Set `transcriptView` to `"concise"` in your settings to group tool activity into expandable work summaries instead of a long scrolling list of individual tool calls. This keeps the timeline readable during long agentic runs — expand a summary only when you need to inspect exactly which tools ran and what they returned.
+
+### Context Management Tools for Agents and Subagents
+
+*(v1.0.85+)* `/settings` now has options to opt in to context management tools for agents and subagents, giving them explicit control over what stays in their context window during long-running tasks instead of relying solely on automatic compaction.
+
+### JSON Output for Plugin and Marketplace Commands
+
+*(v1.0.85+)* `copilot plugin list`, `copilot plugin marketplace list`, and `copilot plugin marketplace browse` all support a `--json` flag for scriptable, machine-readable output:
+
+```bash
+copilot plugin list --json
+copilot plugin marketplace list --json
+copilot plugin marketplace browse awesome-copilot --json
+```
 
 ### Command-Line Parsing Rewrite
 

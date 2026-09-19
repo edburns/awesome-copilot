@@ -3,7 +3,7 @@ title: 'Building Custom Agents'
 description: 'Learn how to create specialized GitHub Copilot agents with custom personas, tool integrations, and domain expertise.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-09-05
+lastUpdated: 2026-09-19
 estimatedReadingTime: '10 minutes'
 tags:
   - agents
@@ -92,6 +92,18 @@ name: 'Security Reviewer'
 description: 'Thorough security audit for OWASP vulnerabilities'
 model: Claude Sonnet 4
 reasoningEffort: high
+tools: ['codebase', 'terminal', 'github']
+---
+```
+
+**include-custom-instructions** *(v1.0.86+)*: Set to `true` to have this agent opt into your repository's instruction files (`AGENTS.md`, `copilot-instructions.md`, `CLAUDE.md`), even though custom agents don't inherit repository instructions by default. This is useful when an agent should still follow your team's coding standards or architectural conventions alongside its own persona:
+
+```yaml
+---
+name: 'Security Reviewer'
+description: 'Thorough security audit for OWASP vulnerabilities'
+model: Claude Sonnet 4
+include-custom-instructions: true
 tools: ['codebase', 'terminal', 'github']
 ---
 ```
