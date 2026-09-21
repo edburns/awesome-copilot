@@ -3,7 +3,7 @@ title: 'Getting Started with the GitHub Copilot app'
 description: 'Learn about the GitHub Copilot app, a desktop experience built for agent-native development. Understand its key features and who it''s for.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-09-12
+lastUpdated: 2026-09-21
 estimatedReadingTime: '8 minutes'
 tags:
   - copilot-app
@@ -126,6 +126,18 @@ Open app settings directly from the message composer with **`/settings`** *(v1.1
 *(v1.1.20+)* If two installed plugins each ship a custom agent with the same display name, the agent picker now distinguishes them by their owning plugin, so you can tell at a glance which agent you're selecting when names collide.
 
 > **Terminology note (v1.1.20+)**: The "Start from scratch" option in session creation menus and project pickers has been renamed to **"Chat"**.
+
+### Local Sandbox for Agent Commands
+
+*(v1.1.23+)* A new project setting and **`/sandbox`** command let you run the agent's shell commands in a local sandbox restricted to the session's workspace, matching the sandboxing capability already available in Copilot CLI (see [Copilot Configuration Basics](../copilot-configuration-basics/)). This restricts filesystem access to the session's own workspace, reducing the blast radius of an agent-run command.
+
+### Featured Canvases in Customize
+
+*(v1.1.23+)* **Customize** now includes featured, ready-to-install canvases — for example, a Sentry canvas for triaging live issues directly from a session — in addition to the plugins, skills, MCP servers, and connectors it already surfaced (see [Working with Canvas Extensions](../working-with-canvas-extensions/)).
+
+### Restarting Sessions in Place
+
+*(v1.1.23+)* The **`/restart-session`** command restarts a chat or side chat conversation while preserving its history, letting you recover a stuck or confused session without losing the context you'd built up.
 
 ## Who is the Copilot app for?
 

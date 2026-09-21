@@ -3,7 +3,7 @@ title: 'Copilot Configuration Basics'
 description: 'Learn how to configure GitHub Copilot at user, workspace, and repository levels to optimize your AI-assisted development experience.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-09-12
+lastUpdated: 2026-09-21
 estimatedReadingTime: '10 minutes'
 tags:
   - configuration
@@ -945,6 +945,26 @@ copilot skill enable my-skill    # enable a specific skill
 ### Command-Line Parsing Rewrite
 
 *(v1.0.84+)* Command-line parsing moved from Commander to a Rust-based grammar that mirrors what the CLI actually parses, which also generates shell completions directly from that grammar — so `copilot <TAB>` now offers root flags alongside subcommands, and each subcommand only shows its own options. As a result of this change, some error and help wording changed, `copilot login --host` now works correctly, and `--max-autopilot-continues` no longer accepts scientific notation as a value.
+
+### Worktree Path Templates
+
+*(v1.0.87+)* A `worktreePathTemplate` setting controls where `/worktree`, `/move`, `/new`, and `--worktree` create new worktrees. Set a template such as `~/src/worktrees/{repo}/{branch}` using the supported placeholders `{repoPath}`, `{repo}`, `{branch}`, and `{branchSlug}`:
+
+```json
+{
+  "worktreePathTemplate": "~/src/worktrees/{repo}/{branch}"
+}
+```
+
+Leaving the setting unset keeps the default layout (`<repo>.worktrees/`, with slashes in branch names flattened to dashes).
+
+### Auto Routing Tier Defaults
+
+*(v1.0.87+)* Organizations and individual users can now set startup defaults for the Auto model-routing tier. An organization policy can mark its default as strict (users cannot override it) or user-overridable, giving admins finer control over cost and model selection while still letting individual users opt into a different tier where policy allows.
+
+### Combining Steering Prompts
+
+*(v1.0.87+)* Consecutive steering prompts typed into the same mode while a turn is running now combine into a single pending message instead of queuing separately. Press Up in an empty chat input to recall the pending message (including pasted text and attachments) for editing — a recall hint appears in the pending message itself. `Ctrl+C` stops the running turn instead of removing queued prompts one at a time, `Ctrl+Q` queued prompts remain separate, and `Ctrl+P` lets you browse prompt history without withdrawing anything you've queued. This is available for local sessions only; prompts already being processed can't be recalled.
 
 ## Common Questions
 
