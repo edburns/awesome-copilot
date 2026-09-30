@@ -22,6 +22,19 @@ pr_number="$4"
 
 terminal_marker="$(
     awk '
+        /^###[[:space:]]+Copilot[[:space:]]*$/ {
+            in_copilot_response=1
+            saw_copilot_response=1
+            marker=""
+            next
+        }
+        in_copilot_response &&
+        (/^###[[:space:]]+User[[:space:]]*$/ || /^###[[:space:]]+`/) {
+            in_copilot_response=0
+        }
+        !in_copilot_response {
+            next
+        }
         {
             gsub(/\*/, "")
             while ($0 ~ /^[[:space:]]*>/) {
@@ -29,17 +42,20 @@ terminal_marker="$(
             }
             sub(/^[[:space:]]+/, "")
             sub(/[[:space:]]+$/, "")
-            if ($0 ~ /^SHEPHERD (COMPLETE|FAILED):/) marker=$0
+            if ($0 ~ /^SHEPHERD (COMPLETE|FAILED|BLOCKED):/) marker=$0
         }
-        END { print marker }
+        END {
+            if (saw_copilot_response) print marker
+        }
     ' "$share_path"
 )"
 
 [[ -n "$terminal_marker" ]] || {
-    echo "Stage $stage did not report a terminal SHEPHERD COMPLETE or SHEPHERD FAILED marker: $share_path" >&2
+    echo "Stage $stage did not report a terminal SHEPHERD COMPLETE, SHEPHERD FAILED, or SHEPHERD BLOCKED marker in its final Copilot response: $share_path" >&2
     exit 1
 }
-[[ "$terminal_marker" != SHEPHERD\ FAILED:* ]] || {
+[[ "$terminal_marker" != SHEPHERD\ FAILED:* &&
+   "$terminal_marker" != SHEPHERD\ BLOCKED:* ]] || {
     echo "Stage $stage reported semantic failure: $terminal_marker" >&2
     exit 1
 }

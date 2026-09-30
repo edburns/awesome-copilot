@@ -50,7 +50,14 @@ function Assert-Fails {
 
 try {
     $successfulStage30 = Write-Transcript -Name 'stage30-success.md' -Text @'
-Earlier tool output mentioned SHEPHERD FAILED: but was not a terminal marker.
+# Copilot CLI Session
+
+### `skill`
+
+SHEPHERD FAILED: Exhausted 20 iterations on PR #$PR_NUMBER for task #$TASK_ISSUE.
+
+### Copilot
+
 **SHEPHERD COMPLETE:** PR #24 for task #14 is ready for marking as "Ready for review".
 '@
     $stage30Result = & $assertionPath `
@@ -60,6 +67,10 @@ Earlier tool output mentioned SHEPHERD FAILED: but was not a terminal marker.
     }
 
     $failedStage30 = Write-Transcript -Name 'stage30-failure.md' -Text @'
+# Copilot CLI Session
+
+### Copilot
+
 The GitHub CLI and Copilot CLI both returned process exit code 0.
 **SHEPHERD FAILED:** Copilot completed a follow-up work cycle on PR #24 but did not push a new HEAD within 10 minutes.
 '@
@@ -68,7 +79,27 @@ The GitHub CLI and Copilot CLI both returned process exit code 0.
             -SharePath $failedStage30 -Stage 30 -TaskIssue 14 -PRNumber 24
     }
 
+    $blockedStage30 = Write-Transcript -Name 'stage30-blocked.md' -Text @'
+# Copilot CLI Session
+
+### `skill`
+
+SHEPHERD FAILED: Exhausted 20 iterations on PR #$PR_NUMBER for task #$TASK_ISSUE.
+
+### Copilot
+
+**SHEPHERD BLOCKED:** PR #24 for task #14 has post-merge-only completion gates.
+'@
+    Assert-Fails -ExpectedMessage 'SHEPHERD BLOCKED: PR #24 for task #14' -Action {
+        & $assertionPath `
+            -SharePath $blockedStage30 -Stage 30 -TaskIssue 14 -PRNumber 24
+    }
+
     $successfulStage40 = Write-Transcript -Name 'stage40-success.md' -Text @'
+# Copilot CLI Session
+
+### Copilot
+
 >> **SHEPHERD COMPLETE:** PR #24 for task #14 was merged into experiment/shepherd-control.
 '@
     & $assertionPath `
@@ -87,6 +118,10 @@ The GitHub CLI and Copilot CLI both returned process exit code 0.
     }
 
     $prefixCollision = Write-Transcript -Name 'prefix-collision.md' -Text @'
+# Copilot CLI Session
+
+### Copilot
+
 **SHEPHERD COMPLETE:** PR #240 for task #140 is ready for marking as "Ready for review".
 '@
     Assert-Fails -ExpectedMessage 'does not identify task #14 and PR #24' -Action {
@@ -102,6 +137,7 @@ The GitHub CLI and Copilot CLI both returned process exit code 0.
     $orchestrator = [System.IO.File]::ReadAllText($orchestratorPath)
     foreach ($required in @(
         'resuming Phase 1',
+        'resuming Phase 2 post-merge verification',
         '-Stage 30',
         '-Stage 40',
         'Find-LinkedPR -State MERGED',
@@ -125,6 +161,9 @@ The GitHub CLI and Copilot CLI both returned process exit code 0.
     }
     if ($orchestrator.Contains('skipping Phase 1')) {
         throw 'PowerShell orchestrator still skips stage 30 when an open PR exists.'
+    }
+    if ($orchestrator.Contains('skipping Phase 2')) {
+        throw 'PowerShell orchestrator still skips post-merge verification for an open issue.'
     }
 }
 finally {

@@ -53,7 +53,7 @@ is merged to `main`.
 | 20         | `shepherd-task-20-create-issues-from-plan`         |                                                   | Creates and orders the implementation child issues |
 | 25         |                                                    | `shepherd-task-25-given-list`                     | Runs selected child issues serially, invokes `shepherd-task` separately for each issue to perform stages 30 and 40, and always invokes stage 50 |
 | 30         | `shepherd-task-30-from-assignment-to-ready`        |                                                   | Produces a verified draft PR immediately before Ready for review                     |
-| 40         | `shepherd-task-40-from-ready-to-merged-to-base`    |                                                   | Reviews, fixes, publishes lessons, and merges the PR to the campaign base            |
+| 40         | `shepherd-task-40-from-ready-to-merged-to-base`    |                                                   | Reviews, fixes, merges, and verifies deferred post-merge gates on the campaign base   |
 | 50         | `shepherd-task-50-create-post-mortem`              |                                                   | Writes an evidence-based report for the given-list run                               |
 
 Stages 10 and 20 are optional only when suitable implementation issues already
@@ -365,7 +365,11 @@ The same head must satisfy all of these conditions:
 - the latest `copilot_work_finished` is not older than the latest
   `copilot_work_started`;
 - the PR has an effective nonempty diff;
-- every issue deliverable and acceptance criterion has concrete evidence;
+- every pre-merge issue deliverable and acceptance criterion has concrete
+  evidence;
+- any deferred criterion is intrinsically post-merge-only, is
+  implementation-complete on the current head, and has an exact Stage 40
+  verification plan;
 - every issue-specified gating command passes against that head;
 - relevant substantive CI passes; selector-only success is insufficient;
 - no unresolved review thread, requested change, or actionable bot comment
@@ -396,7 +400,17 @@ Stage 40:
 13. handles base-branch conflicts with a local rebase and
     `--force-with-lease`;
 14. merges with `gh pr merge --merge --delete-branch`;
-15. closes the task issue.
+15. captures the primary merge SHA and satisfies every deferred post-merge
+    criterion against exact base-branch workflow evidence;
+16. when required, merges a narrow evidence-only follow-up PR and waits for its
+    exact-merge CI before allowing the serial campaign to continue;
+17. closes the task issue only after no deferred, failed, or unknown criterion
+    remains.
+
+If post-merge verification stops after the primary PR merges, Stage 40 reopens
+the task issue. A later given-list run detects the linked merged PR, skips
+Stage 30, and resumes post-merge verification instead of creating a duplicate
+implementation PR.
 
 Review fixes are made by the local Copilot CLI, not by CCA. A review body heading
 or a textual “comments generated” count is not authoritative; stage 40 uses

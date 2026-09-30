@@ -41,7 +41,14 @@ $requiredSkillText = @(
     'repository(owner: $owner, name: $name)',
     'if [ "$BASE_BRANCH" = "main" ]; then',
     'if [ "$ACTUAL_BASE" != "$BASE_BRANCH" ]; then',
-    'ERROR: Could not set PR base to'
+    'ERROR: Could not set PR base to',
+    '### Step 0.1: Reconstruct post-merge gates',
+    'MERGE_SHA=$(gh pr view "$PR_NUMBER" -R "$REPO"',
+    '--commit "$MERGE_SHA"',
+    '--event push',
+    'gh issue reopen "$TASK_ISSUE" -R "$REPO"',
+    'separate evidence-only PR',
+    'all post-merge completion gates passed'
 )
 foreach ($required in $requiredSkillText) {
     if (-not $skill.Contains($required)) {

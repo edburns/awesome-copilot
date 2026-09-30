@@ -27,23 +27,39 @@ if (-not (Test-Path -LiteralPath $SharePath -PathType Leaf)) {
     throw "Stage $Stage did not write its required session transcript: $SharePath"
 }
 
-$terminalMarkers = @(
-    foreach ($line in [System.IO.File]::ReadLines($SharePath)) {
-        $normalized = ($line -replace '\*', '').Trim()
-        while ($normalized.StartsWith('>')) {
-            $normalized = $normalized.Substring(1).TrimStart()
-        }
-        if ($normalized -match '^SHEPHERD (?:COMPLETE|FAILED):') {
-            $normalized
-        }
+$terminalMarker = $null
+$inCopilotResponse = $false
+$sawCopilotResponse = $false
+foreach ($line in [System.IO.File]::ReadLines($SharePath)) {
+    if ($line -match '^###\s+Copilot\s*$') {
+        $inCopilotResponse = $true
+        $sawCopilotResponse = $true
+        $terminalMarker = $null
+        continue
     }
-)
-if ($terminalMarkers.Count -eq 0) {
-    throw "Stage $Stage did not report a terminal SHEPHERD COMPLETE or SHEPHERD FAILED marker: $SharePath"
+    if ($inCopilotResponse -and
+        ($line -match '^###\s+User\s*$' -or $line -match '^###\s+`')) {
+        $inCopilotResponse = $false
+    }
+    if (-not $inCopilotResponse) {
+        continue
+    }
+
+    $normalized = ($line -replace '\*', '').Trim()
+    while ($normalized.StartsWith('>')) {
+        $normalized = $normalized.Substring(1).TrimStart()
+    }
+    if ($normalized -match '^SHEPHERD (?:COMPLETE|FAILED|BLOCKED):') {
+        $terminalMarker = $normalized
+    }
 }
 
-$terminalMarker = [string]$terminalMarkers[-1]
-if ($terminalMarker.StartsWith('SHEPHERD FAILED:', [StringComparison]::Ordinal)) {
+if (-not $sawCopilotResponse -or [string]::IsNullOrWhiteSpace($terminalMarker)) {
+    throw "Stage $Stage did not report a terminal SHEPHERD COMPLETE, SHEPHERD FAILED, or SHEPHERD BLOCKED marker in its final Copilot response: $SharePath"
+}
+
+if ($terminalMarker.StartsWith('SHEPHERD FAILED:', [StringComparison]::Ordinal) -or
+    $terminalMarker.StartsWith('SHEPHERD BLOCKED:', [StringComparison]::Ordinal)) {
     throw "Stage $Stage reported semantic failure: $terminalMarker"
 }
 if (-not $terminalMarker.StartsWith('SHEPHERD COMPLETE:', [StringComparison]::Ordinal)) {

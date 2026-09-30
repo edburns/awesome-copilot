@@ -1,14 +1,14 @@
 ---
 # shepherd-task-version: 1.0.4
 name: shepherd-task-40-from-ready-to-merged-to-base
-description: 'Stage 40 of the shepherd-task campaign lifecycle (each issue from Ready for review through merge to the campaign base branch). Use this skill to shepherd a task PR from ''Ready for review'' through Copilot code review, local comment resolution, and merge to the specified base branch.'
+description: 'Stage 40 of the shepherd-task campaign lifecycle (each issue from Ready for review through merge and post-merge verification on the campaign base branch). Use this skill to shepherd a task PR through Copilot review, merge, exact-SHA base CI, and deferred evidence gates.'
 ---
 
 # Skill: Shepherd Task from Ready for Review to Merged (shepherd-task stage 40 — Ready for review through merge)
 
 ## Purpose
 
-This is stage 40 of the ordered shepherd-task campaign lifecycle (00 → 10 → 15 → 20 → 25 → 30 → 40 → 50): each issue from Ready for review through merge to the campaign base branch. Automate the lifecycle of a task PR from marking as **Ready for review** through Copilot code review comment resolution and merge to the specified base branch. This is a follow-up skill intended to be run after `shepherd-task-30-from-assignment-to-ready`.
+This is stage 40 of the ordered shepherd-task campaign lifecycle (00 → 10 → 15 → 20 → 25 → 30 → 40 → 50): each issue from Ready for review through merge to the campaign base branch. Automate the lifecycle of a task PR from marking as **Ready for review** through Copilot code review comment resolution, merge to the specified base branch, and verification of any requirements that Stage 30 correctly deferred because they can exist only after merge. This is a follow-up skill intended to be run after `shepherd-task-30-from-assignment-to-ready`.
 
 ## Inputs
 
@@ -29,6 +29,11 @@ This is stage 40 of the ordered shepherd-task campaign lifecycle (00 → 10 → 
 - `gh` CLI authenticated with sufficient permissions.
 - The PR is in draft state with all CI checks passing, or is already ready
   because a prior resumable stage-40 attempt completed that transition.
+- The PR may already be merged when resuming a prior Stage 40 attempt that
+  reopened the issue because post-merge verification did not finish.
+- Any Stage 30 `DEFERRED` requirement is intrinsically post-merge-only and has
+  a concrete verification plan. Stage 40 must not accept deferred
+  implementation, PR-head CI, test, artifact, or review work.
 
 ## PowerShell native-command safety
 
@@ -74,7 +79,34 @@ Use the same multi-strategy approach as the assignment skill:
 2. **PR body search** — search open PR bodies for `#$TASK_ISSUE`.
 3. **Title/branch match** — regex match on title or headRefName.
 
-If none of these find the PR, fail the skill and report the error.
+First search for an open linked PR. If none exists and the task issue is open,
+search for a linked merged PR targeting `BASE_BRANCH`. A merged match means
+this is a post-merge resume: preserve `PR_NUMBER`, skip Steps 1–18, and continue
+at Step 19. If neither state yields exactly one authoritative linked PR, fail
+the skill and report the error.
+
+### Step 0.1: Reconstruct post-merge gates
+
+Read the complete task issue and reconstruct the evidence table produced by
+Stage 30. Identify requirements that were deferred solely because their facts
+cannot exist before merge. Typical examples are:
+
+- a successful base-branch `push` workflow for the exact primary merge SHA;
+- workflow run, job, or artifact identifiers produced only by that run;
+- a repository evidence file that must record those identifiers and itself be
+  merged.
+
+For every deferred gate, record:
+
+1. the exact issue requirement;
+2. why it is impossible before merge;
+3. the exact post-merge query or command;
+4. the expected evidence;
+5. any repository path that must be updated and merged.
+
+If any deferred item is actually unfinished implementation, current-head CI,
+testing, artifact production available on the PR, or review work, report
+`SHEPHERD FAILED` and stop. Do not use Stage 40 to bypass Stage 30.
 
 ### Steps 1–2: Mark ready, request Copilot review, and await completion
 
@@ -393,26 +425,153 @@ gh pr merge $PR_NUMBER -R $REPO --merge --delete-branch
 
 This merges the work to `BASE_BRANCH`.
 
-### Step 19: Clean up worktree
+### Step 19: Capture the primary merge SHA
+
+The primary merge SHA is the immutable anchor for every deferred gate. Do not
+substitute the PR head, the PR synthetic merge SHA, or a later evidence commit.
 
 ```bash
-# Remove the worktree (sibling directory)
-git worktree remove "$WORKTREE_PATH"
+MERGE_SHA=$(gh pr view "$PR_NUMBER" -R "$REPO" \
+  --json state,mergeCommit \
+  --jq 'select(.state == "MERGED") | .mergeCommit.oid // empty')
+if [ -z "$MERGE_SHA" ]; then
+  echo "SHEPHERD FAILED: PR #$PR_NUMBER merged without an observable merge commit."
+  gh issue reopen "$TASK_ISSUE" -R "$REPO" >/dev/null 2>&1 || true
+  exit 1
+fi
+```
+
+GitHub may automatically close the linked issue when the primary PR merges.
+That is not task completion while deferred gates remain. If any post-merge gate
+fails, reopen the issue before reporting failure.
+
+When deferred gates exist, reopen the issue immediately after capturing
+`MERGE_SHA`, before starting any long-running workflow wait. This makes an
+interrupted Stage 40 attempt durably resumable. Leave it open until Step 24.
+
+### Step 20: Verify exact-SHA base-branch workflows
+
+When a deferred gate requires base-branch workflow evidence, wait for `push`
+runs whose `headSha` is exactly `MERGE_SHA` and whose `headBranch` is exactly
+`BASE_BRANCH`. Do not accept PR checks, synthetic merge refs, another commit,
+or merely the newest branch run.
+
+```bash
+TIMEOUT=3600
+INTERVAL=30
+ELAPSED=0
+POST_MERGE_RUNS='[]'
+
+while [ "$ELAPSED" -lt "$TIMEOUT" ]; do
+  POST_MERGE_RUNS=$(gh run list -R "$REPO" \
+    --branch "$BASE_BRANCH" \
+    --commit "$MERGE_SHA" \
+    --event push \
+    --limit 100 \
+    --json databaseId,workflowName,status,conclusion,headBranch,headSha,url)
+  RUN_COUNT=$(jq 'length' <<<"$POST_MERGE_RUNS")
+  PENDING_COUNT=$(jq '[.[] | select(.status != "completed")] | length' \
+    <<<"$POST_MERGE_RUNS")
+  if [ "$RUN_COUNT" -gt 0 ] && [ "$PENDING_COUNT" -eq 0 ]; then
+    break
+  fi
+  sleep "$INTERVAL"
+  ELAPSED=$((ELAPSED + INTERVAL))
+done
+
+RUN_COUNT=$(jq 'length' <<<"$POST_MERGE_RUNS")
+PENDING_COUNT=$(jq '[.[] | select(.status != "completed")] | length' \
+  <<<"$POST_MERGE_RUNS")
+FAILING_COUNT=$(jq \
+  '[.[] | select(.status == "completed") |
+    select(.conclusion != "success" and .conclusion != "neutral" and
+           .conclusion != "skipped")] | length' \
+  <<<"$POST_MERGE_RUNS")
+if [ "$RUN_COUNT" -eq 0 ] || [ "$PENDING_COUNT" -ne 0 ] ||
+   [ "$FAILING_COUNT" -ne 0 ]; then
+  gh issue reopen "$TASK_ISSUE" -R "$REPO" >/dev/null 2>&1 || true
+  echo "SHEPHERD FAILED: exact-SHA post-merge workflows did not pass for $MERGE_SHA."
+  exit 1
+fi
+```
+
+Evaluate workflow relevance, not only conclusions. Require the substantive
+workflow and stable jobs named by the issue. Capture exact run, job, artifact,
+digest, and URL evidence required by each deferred row.
+
+If no deferred gate requires a base-branch workflow, do not invent one. Continue
+with the remaining deferred gates.
+
+### Step 21: Merge required post-merge evidence
+
+If a deferred gate requires a repository file to record post-merge evidence,
+update it in a separate evidence-only PR:
+
+1. Fetch `REMOTE` and create a sibling worktree from the current
+   `REMOTE/BASE_BRANCH`.
+2. Create a uniquely named evidence branch containing `TASK_ISSUE` and the
+   abbreviated `MERGE_SHA`.
+3. Update only the evidence/documentation paths required by the deferred gate.
+   Bind all recorded workflow facts to the primary `MERGE_SHA`.
+4. Run applicable formatting, generated-file, and documentation checks.
+5. Commit and push the evidence branch, open a PR targeting `BASE_BRANCH`, and
+   record its number.
+6. Require current-head CI and an acknowledged Copilot review using the same
+   fail-closed review protocol as the primary PR. Resolve every finding.
+7. Merge the evidence PR with branch deletion.
+8. Wait for required CI on the evidence PR's exact merge SHA before continuing,
+   so the campaign base remains green before the next serial task.
+
+Use a deterministic branch name derived from `TASK_ISSUE` and the abbreviated
+primary `MERGE_SHA`. Before creating it, search for an existing open or merged
+evidence PR with that branch marker and resume it. Never create duplicate
+evidence PRs after a timeout or interrupted session.
+
+The evidence PR must not contain implementation changes or broaden task scope.
+If it cannot be merged cleanly, reopen `TASK_ISSUE`, report
+`SHEPHERD FAILED`, and stop. Do not close the task based on an unmerged evidence
+branch or a comment containing the evidence.
+
+If no deferred gate requires a repository update, skip the evidence PR.
+
+### Step 22: Re-evaluate every deferred gate
+
+Re-read the issue and produce a final evidence table. Every deferred row must
+now be `PASS`, backed by the primary `MERGE_SHA`, exact workflow/API output,
+and the merged evidence path when required. No `DEFERRED`, `FAIL`, or `UNKNOWN` row may remain.
+
+If a row does not pass, reopen the issue if necessary and report:
+
+```
+SHEPHERD FAILED: Post-merge completion gates did not pass for PR #$PR_NUMBER and task #$TASK_ISSUE.
+Manual intervention required.
+```
+
+### Step 23: Clean up worktrees
+
+```bash
+# Remove each sibling worktree created by this invocation.
+if [ -n "${WORKTREE_PATH:-}" ] && [ -d "$WORKTREE_PATH" ]; then
+  git worktree remove "$WORKTREE_PATH"
+fi
 
 # Remove the local branch tracking the PR topic branch (if created)
 git branch -D "$JTBDTASK_BRANCH" 2>/dev/null || true
 ```
 
-### Step 20: Close the corresponding issue
+Also remove the post-merge evidence worktree and local evidence branch, when
+created. Never remove a worktree that predates this invocation.
+
+### Step 24: Close the corresponding issue
 
 ```bash
 gh issue close $TASK_ISSUE -R $REPO
 ```
 
-### Step 21: Final status report
+### Step 25: Final status report
 
 ```
-SHEPHERD COMPLETE: PR #$PR_NUMBER for task #$TASK_ISSUE has been merged to $BASE_BRANCH.
+SHEPHERD COMPLETE: PR #$PR_NUMBER for task #$TASK_ISSUE has been merged to $BASE_BRANCH and all post-merge completion gates passed.
 ```
 
 ---
@@ -424,6 +583,12 @@ SHEPHERD COMPLETE: PR #$PR_NUMBER for task #$TASK_ISSUE has been merged to $BASE
 - **Copilot refuses review because the PR exceeds the maximum number of files**: Report, require manual intervention, and stop without merging.
 - **8 iterations exhausted**: Report and stop.
 - **Merge conflicts that cannot be auto-resolved**: Report and stop.
+- **Exact-SHA base-branch workflow missing, pending, irrelevant, or failing**:
+  Reopen the task issue if GitHub auto-closed it, report the primary merge SHA,
+  and stop.
+- **Post-merge evidence cannot be updated and merged**: Reopen the task issue,
+  preserve the primary merge and run evidence, report the evidence path and
+  failure, and stop.
 - **API errors**: Retry up to 3 times with 10-second backoff, then report and stop.
 
 ## Notes

@@ -58,7 +58,7 @@ This skill must fail closed. It may emit `SHEPHERD COMPLETE` only when all of th
 1. The PR is linked to `TASK_ISSUE`, is open, is still a draft, and targets `BASE_BRANCH`.
 2. CCA has recorded a `copilot_work_started` event followed by a `copilot_work_finished` event. The latest finish is not older than the latest start.
 3. The PR has a nonempty effective diff: `changed_files > 0`, the PR files API returns at least one file, and the base and head Git tree SHAs differ. An empty commit is not work.
-4. Every deliverable and acceptance criterion in the issue body has been checked against concrete evidence from the PR diff, repository state, or command output. No criterion is assumed satisfied merely because CI is green.
+4. Every deliverable and acceptance criterion in the issue body has been checked against concrete evidence from the PR diff, repository state, or command output. Every pre-merge criterion passes. A criterion may be marked `DEFERRED` only when it is intrinsically impossible before merge, is implementation-complete on the current PR head, and has a concrete Stage 40 post-merge verification plan. No implementation, current-head CI, review, or test criterion may be deferred.
 5. Every executable gating command required by the issue has passed against the current PR HEAD. If a required command cannot be run, stop for manual intervention.
 6. All required and relevant CI checks for the current PR HEAD are complete and successful. Selector/aggregator checks alone are not meaningful CI.
 7. There are no unresolved review threads, change requests, or actionable bot comments.
@@ -349,7 +349,7 @@ Build an evidence table in the session output with one row for every issue deliv
 
 | Issue requirement | Evidence | Status |
 |---|---|---|
-| Exact requirement text | Changed path, relevant diff, or command and result | PASS/FAIL |
+| Exact requirement text | Changed path, relevant diff, command/result, or Stage 40 verification plan | PASS/DEFERRED/FAIL |
 
 Rules:
 
@@ -357,6 +357,19 @@ Rules:
 - Verify required created, modified, moved, or deleted paths against the PR files API.
 - Verify behavioral requirements with code inspection and executable checks.
 - Mark a requirement `PASS` only with concrete evidence. Missing, ambiguous, contradictory, or untestable evidence is `FAIL`.
+- Mark a requirement `DEFERRED` only when the required fact cannot exist until
+  after the PR merges, such as a workflow for the exact merge commit or an
+  evidence update containing identifiers produced by that workflow.
+- A deferred row must prove that all implementation needed to make the
+  post-merge fact possible is present and passing on `HEAD_SHA`, and must state
+  the exact Stage 40 verification command, expected evidence, and repository
+  path to update when applicable.
+- Do not defer implementation work, PR-head CI, executable tests, artifact
+  generation available on the PR, review findings, or merely inconvenient
+  validation. Those remain `FAIL`.
+- Issue bodies produced by newer Stage 20 runs place these rows under
+  `## Post-merge completion gates`. For older issues, apply the same objective
+  test to requirements whose wording necessarily depends on merge.
 - If any row is `FAIL`, request changes from CCA using Step 7. Do not proceed to readiness.
 
 ### Steps 5–6: Approve pending workflow runs and wait for completion
@@ -457,6 +470,8 @@ Immediately before reporting completion, re-query all state. Do not reuse cached
 - The latest `copilot_work_finished` is not older than the latest `copilot_work_started`.
 - `changed_files > 0`, the files API is nonempty, and base/head trees differ.
 - The issue-requirement evidence table contains no `FAIL` or `UNKNOWN` rows.
+  Every `DEFERRED` row is intrinsically post-merge-only, implementation-complete
+  on `HEAD_SHA`, and includes a concrete Stage 40 verification plan.
 - Every issue-specified gating command passed on `HEAD_SHA`.
 - Relevant CI checks for `HEAD_SHA` passed and no check or workflow is pending or `action_required`.
 - No unresolved review thread, `CHANGES_REQUESTED` review, or actionable bot comment remains.
@@ -470,7 +485,7 @@ Only then report:
 
 ```
 SHEPHERD COMPLETE: PR #$PR_NUMBER for task #$TASK_ISSUE is ready for marking as **Ready for review**.
-CCA completed its latest work cycle. The PR has a nonempty effective diff. Every issue requirement and gating command passed against HEAD $HEAD_SHA. Relevant CI passed. No unresolved review comments remain.
+CCA completed its latest work cycle. The PR has a nonempty effective diff. Every pre-merge issue requirement and gating command passed against HEAD $HEAD_SHA. Any deferred requirements are post-merge-only and include concrete Stage 40 verification plans. Relevant CI passed. No unresolved review comments remain.
 Next step: Mark as Ready for Review (use separate skill).
 ```
 
@@ -483,6 +498,9 @@ Next step: Mark as Ready for Review (use separate skill).
 - **PR is no longer open and draft before final readiness**: Report and stop.
 - **Empty diff, empty PR files response, or identical base/head trees**: Report and stop.
 - **Issue requirement lacks concrete passing evidence**: Request changes or stop for manual intervention.
+- **A requirement is deferred without being intrinsically post-merge-only, or
+  lacks a concrete Stage 40 verification plan**: Treat it as `FAIL`; request
+  changes or stop for manual intervention.
 - **Issue-specified gating command cannot run or fails**: Request changes or stop for manual intervention.
 - **Only selector/aggregator CI passes while relevant substantive jobs skip**: Report and stop.
 - **Copilot doesn't push after review request within 10 minutes (including re-assignment attempt)**: Report structured diagnostics (review timestamp, last work_started, last work_finished, whether re-assignment was attempted, unchanged HEAD SHA) and stop.

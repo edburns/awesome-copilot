@@ -19,8 +19,9 @@ flowchart TD
     I -->|Yes, no changes| K[Reassign CCA]
     K --> H
     J --> L[Require changed_files, files API entries, and different Git trees]
-    L --> M[Build evidence table for every issue requirement]
-    M --> N[Approve action_required workflows and wait]
+    L --> M[Classify every issue requirement as pre-merge or intrinsically post-merge-only]
+    M --> M2[Require concrete Stage 40 plan for every deferred row]
+    M2 --> N[Approve action_required workflows and wait]
     N --> O[Require relevant substantive CI on candidate HEAD]
     O --> P[Run every issue-specified gating command on candidate HEAD]
     P --> Q[Query unresolved threads, requested changes, and bot findings]
@@ -47,4 +48,6 @@ flowchart TD
 Expected failures from the repository’s remove-before-merge path check are
 excluded, but skipped relevant CI is not treated as success. A timeout, missing
 test environment, or untestable acceptance criterion is a failure rather than
-permission to advance.
+permission to advance. Stage 30 may defer only facts that cannot exist before
+merge; implementation, PR-head CI, tests, artifacts available on the PR, and
+review work remain mandatory readiness gates.

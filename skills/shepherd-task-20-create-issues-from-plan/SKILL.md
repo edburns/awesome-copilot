@@ -114,8 +114,20 @@ Each issue body must include:
 - Explicit spike **findings** relevant to the task, stated as prose in the issue body — never as paths to spike source files (see "Spike firewall" section).
 - Branch and execution order instructions.
 - Concrete specification of what to build.
-- Tests and gating criteria.
+- Tests and gating criteria that can be satisfied while the implementation PR
+  is still open and draft, under `## Completion gates`.
+- When the plan requires facts that can exist only after merge, a separate
+  `## Post-merge completion gates` section. Each such gate must name the
+  exact base-branch evidence to collect and any repository file that must be
+  updated after the primary PR merges.
 - Out-of-scope boundaries.
+
+Never place a post-merge-only predicate under `## Completion gates`. Examples
+include proving a workflow for the exact merged base-branch SHA, requiring an
+evidence file to already be merged, or observing a push event that cannot occur
+until Stage 40 merges the PR. Stage 30 must be able to satisfy every ordinary
+completion gate before the Ready-for-review boundary; Stage 40 owns explicitly
+post-merge gates.
 
 When `LESSON_PROPAGATION=campaign`, also include this prominent required section, substituting actual values:
 

@@ -11,12 +11,25 @@ temp_directory="$(mktemp -d "$fixture_root/.session-outcome-contract.XXXXXX")"
 trap 'rm -rf "$temp_directory"' EXIT
 
 cat >"$temp_directory/stage30-success.md" <<'EOF'
-Earlier tool output mentioned SHEPHERD FAILED: but was not a terminal marker.
+# Copilot CLI Session
+
+### `skill`
+
+The loaded instructions contain this example:
+
+SHEPHERD FAILED: Exhausted 20 iterations on PR #$PR_NUMBER for task #$TASK_ISSUE.
+
+### Copilot
+
 **SHEPHERD COMPLETE:** PR #24 for task #14 is ready for marking as "Ready for review".
 EOF
 "$assertion" "$temp_directory/stage30-success.md" 30 14 24 >/dev/null
 
 cat >"$temp_directory/stage30-failure.md" <<'EOF'
+# Copilot CLI Session
+
+### Copilot
+
 The GitHub CLI and Copilot CLI both returned process exit code 0.
 **SHEPHERD FAILED:** Copilot completed a follow-up work cycle on PR #24 but did not push a new HEAD within 10 minutes.
 EOF
@@ -25,7 +38,35 @@ if "$assertion" "$temp_directory/stage30-failure.md" 30 14 24 >/dev/null 2>&1; t
     exit 1
 fi
 
+cat >"$temp_directory/stage30-blocked.md" <<'EOF'
+# Copilot CLI Session
+
+### `skill`
+
+SHEPHERD FAILED: Exhausted 20 iterations on PR #$PR_NUMBER for task #$TASK_ISSUE.
+
+### Copilot
+
+**SHEPHERD BLOCKED:** PR #24 for task #14 has post-merge-only completion gates.
+EOF
+set +e
+blocked_output="$("$assertion" "$temp_directory/stage30-blocked.md" 30 14 24 2>&1)"
+blocked_status=$?
+set -e
+[[ $blocked_status -ne 0 && "$blocked_output" == *'SHEPHERD BLOCKED: PR #24 for task #14'* ]] || {
+    echo "Blocked stage 30 transcript did not preserve the final Copilot outcome: $blocked_output" >&2
+    exit 1
+}
+[[ "$blocked_output" != *'Exhausted 20 iterations'* ]] || {
+    echo 'Outcome assertion selected an embedded skill example instead of the final Copilot response.' >&2
+    exit 1
+}
+
 cat >"$temp_directory/stage40-success.md" <<'EOF'
+# Copilot CLI Session
+
+### Copilot
+
 >> **SHEPHERD COMPLETE:** PR #24 for task #14 was merged into experiment/shepherd-control.
 EOF
 "$assertion" "$temp_directory/stage40-success.md" 40 14 24 >/dev/null
@@ -36,6 +77,10 @@ if "$assertion" "$temp_directory/stage30-success.md" 30 14 '' >/dev/null 2>&1; t
 fi
 
 cat >"$temp_directory/prefix-collision.md" <<'EOF'
+# Copilot CLI Session
+
+### Copilot
+
 **SHEPHERD COMPLETE:** PR #240 for task #140 is ready for marking as "Ready for review".
 EOF
 if "$assertion" "$temp_directory/prefix-collision.md" 30 14 24 >/dev/null 2>&1; then
@@ -56,6 +101,7 @@ title_branch_matches=$(jq -r '.[] | select(((.title // "") | test("(^|[^0-9])14(
 }
 
 grep -Fq 'resuming Phase 1' "$orchestrator"
+grep -Fq 'resuming Phase 2 post-merge verification' "$orchestrator"
 grep -Fq 'find_linked_pr MERGED' "$orchestrator"
 grep -Fq 'closingIssuesReferences' "$orchestrator"
 grep -Fq 'any(.closingIssuesReferences[]?; .number == $issue)' "$orchestrator"
@@ -73,6 +119,10 @@ if grep -Fq 'find_linked_pr OPEN) || true' "$orchestrator"; then
 fi
 if grep -Fq 'skipping Phase 1' "$orchestrator"; then
     echo 'Bash orchestrator still skips stage 30 when an open PR exists.' >&2
+    exit 1
+fi
+if grep -Fq 'skipping Phase 2' "$orchestrator"; then
+    echo 'Bash orchestrator still skips post-merge verification for an open issue.' >&2
     exit 1
 fi
 

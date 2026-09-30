@@ -23,6 +23,8 @@ sequenceDiagram
 
     alt Open linked PR exists
         ST->>ST: Log resuming Phase 1 for the existing PR
+    else Open issue has linked merged PR
+        ST->>ST: Skip Phase 1 and resume Stage 40 post-merge verification
     else No open linked PR
         ST->>ST: Begin Phase 1 without an existing PR
     end
@@ -39,6 +41,7 @@ sequenceDiagram
     alt PR is not merged
         ST->>P2: Invoke stage 40 with PR and campaign context
         P2->>GH: Review, fix, publish lessons if enabled, and merge
+        P2->>GH: Verify exact primary merge SHA and satisfy deferred post-merge gates
         P2-->>Art: Redacted phase-2 JSON, share, and OTel JSONL
         P2-->>ST: Session exits
         ST->>GH: Require PR state MERGED

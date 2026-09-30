@@ -216,7 +216,7 @@ C:\Users\edburns\workareas\dd-3056167-01-windows-shepherd-control
     -TaskIssues '2,3' `
     -CampaignMetadataDirectory '1-math-control-remove-before-merge'
 [shepherd] Stage 25 will process issues 2,3 serially.
-[shepherd] For each issue, Stage 30 moves assignment to the Ready-for-review boundary, then Stage 40 reviews and merges it.
+[shepherd] For each issue, Stage 30 moves assignment to the Ready-for-review boundary, then Stage 40 reviews, merges, and verifies deferred post-merge gates.
 [shepherd] Stage 50 creates the campaign post-mortem after success or failure.
 [shepherd] Run evidence will be written beneath: C:\Users\edburns\workareas\dd-3056167-01-windows-shepherd-control\1-math-control-remove-before-merge\shepherd-tasks-<CAMPAIGN_ID>-<TIMESTAMP>
 ```
@@ -228,7 +228,7 @@ macOS, GNU/Linux
 /Users/edburns/workareas/dd-3061974-03-bash-simple-math-shepherd-control
 /Users/edburns/.copilot/plugins/shepherd-task/scripts/shepherd-task-25-given-list.sh 2\,3 1-math-control-remove-before-merge
 [shepherd] Stage 25 will process issues 2,3 serially.
-[shepherd] For each issue, Stage 30 moves assignment to the Ready-for-review boundary, then Stage 40 reviews and merges it.
+[shepherd] For each issue, Stage 30 moves assignment to the Ready-for-review boundary, then Stage 40 reviews, merges, and verifies deferred post-merge gates.
 [shepherd] Stage 50 creates the campaign post-mortem after success or failure.
 [shepherd] Run evidence will be written beneath: /Users/edburns/workareas/dd-3061974-03-bash-simple-math-shepherd-control/1-math-control-remove-before-merge/shepherd-tasks-<CAMPAIGN_ID>-<TIMESTAMP>
 
@@ -355,4 +355,3 @@ The `shepherd-task` system will cause a post-mortem report to be written to the 
 - Windows ⌛
 - https://github.com/edburns/dd-3061974-02-cargotracker/blob/experiment/shepherd-control/1-arrival-deadline-control-remove-before-merge/shepherd-tasks-c9e71f6c-ab48-4663-8125-5b796a989029-20260910-0948/20260910-1246-post-mortem.md
 - https://github.com/edburns/dd-3061974-05-cargotracker-linux/blob/experiment/shepherd-control/1-arrival-deadline-control-remove-before-merge/shepherd-tasks-34dfbae2-dbd9-4702-ad9a-808b93224026-20260910-1738/20260910-2025-post-mortem.md
-
