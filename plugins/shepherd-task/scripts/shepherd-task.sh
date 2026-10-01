@@ -58,7 +58,15 @@ run_copilot_redacted() {
     redact_exit=${pipeline_status[1]}
     set -e
     if [[ $copilot_exit -ne 0 ]]; then
+        if [[ $redact_exit -ne 0 ]]; then
+            echo "[shepherd-task] Copilot exited $copilot_exit and the JSONL redactor exited $redact_exit." >&2
+        else
+            echo "[shepherd-task] Copilot exited $copilot_exit; JSONL redaction completed." >&2
+        fi
         return "$copilot_exit"
+    fi
+    if [[ $redact_exit -ne 0 ]]; then
+        echo "[shepherd-task] Copilot completed, but the JSONL redactor exited $redact_exit." >&2
     fi
     return "$redact_exit"
 }
@@ -275,7 +283,7 @@ if [[ "$RESUME_POST_MERGE" == "0" ]]; then
         PHASE1_EXIT=$?
     fi
     if [[ $PHASE1_EXIT -ne 0 ]]; then
-        echo "[shepherd-task] FAILED: Phase 1 copilot session or redaction failed." >&2
+        echo "[shepherd-task] FAILED: Phase 1 Copilot/redaction pipeline exited $PHASE1_EXIT; see component diagnostics above." >&2
         exit "$PHASE1_EXIT"
     fi
 
@@ -343,7 +351,7 @@ else
     PHASE2_EXIT=$?
 fi
 if [[ $PHASE2_EXIT -ne 0 ]]; then
-    echo "[shepherd-task] FAILED: Phase 2 copilot session or redaction failed." >&2
+    echo "[shepherd-task] FAILED: Phase 2 Copilot/redaction pipeline exited $PHASE2_EXIT; see component diagnostics above." >&2
     exit "$PHASE2_EXIT"
 fi
 

@@ -95,7 +95,10 @@ if grep -R -Fq 'ghp_failed_phase_secret' "$log_directory"; then
     exit 1
 fi
 grep -Fq \
-    'FAILED: Phase 1 copilot session or redaction failed.' \
+    'Copilot exited 23; JSONL redaction completed.' \
+    "$temp_root/orchestrator.out"
+grep -Fq \
+    'FAILED: Phase 1 Copilot/redaction pipeline exited 23; see component diagnostics above.' \
     "$temp_root/orchestrator.out"
 
 echo 'Bash session artifact contract tests passed.'

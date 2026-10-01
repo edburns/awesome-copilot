@@ -73,6 +73,50 @@ function Redact-JsonValue {
     return $Value
 }
 
+function Convert-RedactedJsonlLine {
+    param(
+        [AllowEmptyString()]
+        [string]$Line,
+        [int]$LineNumber,
+        [string]$Context
+    )
+
+    if ([string]::IsNullOrEmpty($Line)) {
+        return [pscustomobject]@{
+            Text = ''
+            Recovered = $false
+        }
+    }
+
+    try {
+        $json = $Line | ConvertFrom-Json -Depth 100
+    } catch {
+        $byteCount = [Text.Encoding]::UTF8.GetByteCount($Line)
+        $warning = [ordered]@{
+            type = 'shepherd.redaction_warning'
+            data = [ordered]@{
+                reason = 'invalid_jsonl_record'
+                line = $LineNumber
+                byteCount = $byteCount
+            }
+        }
+        [Console]::Error.WriteLine(
+            "Replaced invalid JSONL record in $Context at line " +
+            "$LineNumber ($byteCount bytes)."
+        )
+        return [pscustomobject]@{
+            Text = $warning | ConvertTo-Json -Compress -Depth 10
+            Recovered = $true
+        }
+    }
+
+    return [pscustomobject]@{
+        Text = Redact-JsonValue $json '' |
+            ConvertTo-Json -Compress -Depth 100
+        Recovered = $false
+    }
+}
+
 function Redact-File {
     param([System.IO.FileInfo]$File)
 
@@ -80,17 +124,24 @@ function Redact-File {
     try {
         if ($File.Extension -eq '.jsonl') {
             $output = [System.Collections.Generic.List[string]]::new()
+            $lineNumber = 0
+            $invalidCount = 0
             foreach ($line in [System.IO.File]::ReadLines($File.FullName)) {
-                if ([string]::IsNullOrWhiteSpace($line)) {
-                    $output.Add('')
-                    continue
+                $lineNumber++
+                $record = Convert-RedactedJsonlLine `
+                    -Line $line `
+                    -LineNumber $lineNumber `
+                    -Context $File.FullName
+                $output.Add($record.Text)
+                if ($record.Recovered) {
+                    $invalidCount++
                 }
-                try {
-                    $json = $line | ConvertFrom-Json -Depth 100
-                } catch {
-                    throw "Invalid JSONL in $($File.FullName)"
-                }
-                $output.Add((Redact-JsonValue $json '' | ConvertTo-Json -Compress -Depth 100))
+            }
+            if ($invalidCount -gt 0) {
+                [Console]::Error.WriteLine(
+                    "Recovered $invalidCount invalid JSONL record(s) in " +
+                    "$($File.FullName)."
+                )
             }
             [System.IO.File]::WriteAllLines($temporaryPath, $output)
         } else {
@@ -126,17 +177,24 @@ function Redact-File {
 }
 
 if ($LogDirectory -eq '-') {
-    foreach ($line in [Console]::In.ReadToEnd() -split "\r?\n") {
-        if ([string]::IsNullOrEmpty($line)) {
-            [Console]::Out.WriteLine()
-            continue
+    $reader = [IO.StringReader]::new([Console]::In.ReadToEnd())
+    $lineNumber = 0
+    $invalidCount = 0
+    while ($null -ne ($line = $reader.ReadLine())) {
+        $lineNumber++
+        $record = Convert-RedactedJsonlLine `
+            -Line $line `
+            -LineNumber $lineNumber `
+            -Context 'stdin'
+        [Console]::Out.WriteLine($record.Text)
+        if ($record.Recovered) {
+            $invalidCount++
         }
-        try {
-            $json = $line | ConvertFrom-Json -Depth 100
-        } catch {
-            throw "Invalid JSONL received on stdin"
-        }
-        [Console]::Out.WriteLine((Redact-JsonValue $json '' | ConvertTo-Json -Compress -Depth 100))
+    }
+    if ($invalidCount -gt 0) {
+        [Console]::Error.WriteLine(
+            "Recovered $invalidCount invalid JSONL record(s) in stdin."
+        )
     }
     exit 0
 }

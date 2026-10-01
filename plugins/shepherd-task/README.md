@@ -581,6 +581,10 @@ failure produces a warning but does not replace the original run exit code.
 - The run directory is rescanned for `.json*` files after sessions complete.
 - The redactor replaces credential-like keys, content-bearing event fields,
   known token patterns, and high-entropy base64-like strings.
+- If a JSONL producer emits a malformed record, the redactor replaces only that
+  record with a credential-free `shepherd.redaction_warning` event and
+  continues consuming the stream. Standalone malformed JSON still fails
+  closed.
 - Markdown session shares are not processed by the JSON redactor.
 - An interrupted run may not have completed its final scan.
 

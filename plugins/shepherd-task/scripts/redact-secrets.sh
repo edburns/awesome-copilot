@@ -40,21 +40,84 @@ JQ_FILTER='
     scrub
 '
 
+command -v jq >/dev/null 2>&1 || {
+    echo "jq is required to redact shepherd logs." >&2
+    exit 1
+}
+printf '{}\n' | jq -c "$JQ_FILTER" >/dev/null 2>&1 || {
+    echo "Unable to initialize the shepherd JSON redaction filter." >&2
+    exit 1
+}
+
+emit_invalid_jsonl_record() {
+    local line_number="$1"
+    local byte_count="$2"
+    jq -cn \
+        --argjson line "$line_number" \
+        --argjson byteCount "$byte_count" \
+        '{
+            type: "shepherd.redaction_warning",
+            data: {
+                reason: "invalid_jsonl_record",
+                line: $line,
+                byteCount: $byteCount
+            }
+        }'
+}
+
+redact_jsonl_stream() {
+    local context="$1"
+    local line=""
+    local line_number=0
+    local invalid_count=0
+    local redacted=""
+    local jq_exit=0
+    local byte_count=0
+    local jq_error_file
+    jq_error_file="$(mktemp)"
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line_number=$((line_number + 1))
+        if [[ -z "$line" ]]; then
+            printf '\n'
+            continue
+        fi
+
+        : >"$jq_error_file"
+        if redacted="$(printf '%s\n' "$line" | LC_ALL=C jq -c "$JQ_FILTER" 2>"$jq_error_file")"; then
+            printf '%s\n' "$redacted"
+            continue
+        else
+            jq_exit=$?
+        fi
+
+        if ! grep -q '^jq: parse error:' "$jq_error_file"; then
+            rm -f "$jq_error_file"
+            echo "Redaction failed for $context at line $line_number; jq exited $jq_exit." >&2
+            return "$jq_exit"
+        fi
+
+        byte_count="$(LC_ALL=C printf '%s' "$line" | wc -c | tr -d '[:space:]')"
+        emit_invalid_jsonl_record "$line_number" "$byte_count"
+        invalid_count=$((invalid_count + 1))
+        echo "Replaced invalid JSONL record in $context at line $line_number ($byte_count bytes)." >&2
+    done
+
+    rm -f "$jq_error_file"
+    if [[ $invalid_count -gt 0 ]]; then
+        echo "Recovered $invalid_count invalid JSONL record(s) in $context." >&2
+    fi
+}
+
 redact_file() {
     local file="$1"
     local temp
     temp=$(mktemp "${file}.redact.XXXXXX")
 
     if [[ "$file" == *.jsonl ]]; then
-        if ! while IFS= read -r line || [[ -n "$line" ]]; do
-            if [[ -z "$line" ]]; then
-                printf '\n'
-            else
-                printf '%s\n' "$line" | jq -c "$JQ_FILTER"
-            fi
-        done <"$file" >"$temp"; then
+        if ! redact_jsonl_stream "$file" <"$file" >"$temp"; then
             rm -f "$temp"
-            echo "Invalid JSONL; left unchanged: $file" >&2
+            echo "Unable to redact JSONL; left unchanged: $file" >&2
             exit 1
         fi
     elif ! jq "$JQ_FILTER" "$file" >"$temp"; then
@@ -81,13 +144,7 @@ redact_file() {
 }
 
 if [[ "$TARGET" == "-" ]]; then
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        if [[ -z "$line" ]]; then
-            printf '\n'
-        else
-            printf '%s\n' "$line" | jq -c "$JQ_FILTER"
-        fi
-    done
+    redact_jsonl_stream "stdin"
     exit 0
 fi
 
