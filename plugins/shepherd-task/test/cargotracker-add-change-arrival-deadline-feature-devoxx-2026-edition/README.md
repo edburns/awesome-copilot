@@ -11,7 +11,7 @@ phase.
 ## Fixed baseline
 
 - Source branch: `edburns/dd-3016202-cargotracker-devoxx-be-2026-experiment`
-- Baseline SHA: `eac2f312760dc7d5b47bea75989294559c024cdc`
+- Baseline SHA: `44b52082d4175af4c5fa92a107e87004f67fa418`
 - Shared baseline branch created by the fixture:
   `experiment/shepherd-shared-baseline`
 - Campaign branch: `edburns/dd-3016202-cargotracker-devoxx-be-2026-add-feature-control`
@@ -60,7 +60,7 @@ names must also be unused.
 
 ## Prepare a disposable repository
 
-1. Fork `edburns/dd-3016202-cargotracker-devoxx-be-2026`, using a unique name
+1. Fork `azure-javaee/dd-3016202-cargotracker-devoxx-be-2026`, using a unique name
    such as `YYYYMMDD-HHMM-cargotracker-add-feature`. Do not select
    **Copy the master branch only**.
 2. Enable Actions and Issues.

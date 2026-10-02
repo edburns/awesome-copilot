@@ -16,7 +16,7 @@ fail() {
 repo="$1"
 baseline_branch="$2"
 source_branch="${3:-edburns/dd-3016202-cargotracker-devoxx-be-2026-experiment}"
-expected_baseline_sha="${4:-eac2f312760dc7d5b47bea75989294559c024cdc}"
+expected_baseline_sha="${4:-44b52082d4175af4c5fa92a107e87004f67fa418}"
 
 for command_name in git; do
     command -v "$command_name" >/dev/null 2>&1 ||

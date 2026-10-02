@@ -51,7 +51,7 @@ required_texts=(
     'shepherd-task-15-prepare-create-issues.sh'
     'shepherd-task-25-given-list.sh'
     'edburns/dd-3016202-cargotracker-devoxx-be-2026-experiment'
-    'eac2f312760dc7d5b47bea75989294559c024cdc'
+    '44b52082d4175af4c5fa92a107e87004f67fa418'
 )
 for required in "${required_texts[@]}"; do
     grep -Fq -- "$required" "$driver" ||

@@ -146,7 +146,7 @@ jq -e '.lessonPropagation == "off"' "$manifest_path" >/dev/null ||
 plan_file='add-change-arrival-deadline-feature-ignorance-reduction-plan.md'
 plan_path="$campaign_metadata_path/$plan_file"
 plan_hash="$(decode_plan_archive | gzip -dc | sha256_stream)"
-[[ "$plan_hash" == "55325888ac5c6fc22951b251ae4ae534c4a02c33d3d8c23c26b4125e7c616d08" ]] ||
+[[ "$plan_hash" == "1b7654c7269dc629d9ac69a225ed728e82b00c4e9c5c57469a1c215b13eabc75" ]] ||
     fail "Embedded Cargo Tracker plan hash '$plan_hash' is invalid."
 set +e
 decode_plan_archive | gzip -dc >"$plan_path"

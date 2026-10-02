@@ -74,7 +74,7 @@ $planBytes = [System.Text.UTF8Encoding]::new($false).GetBytes($plan)
 $planHash = [Convert]::ToHexString(
     [System.Security.Cryptography.SHA256]::HashData($planBytes)
 ).ToLowerInvariant()
-$expectedPlanHash = '55325888ac5c6fc22951b251ae4ae534c4a02c33d3d8c23c26b4125e7c616d08'
+$expectedPlanHash = '1b7654c7269dc629d9ac69a225ed728e82b00c4e9c5c57469a1c215b13eabc75'
 if ($planHash -ne $expectedPlanHash) {
     throw "Embedded Cargo Tracker plan hash '$planHash' does not match '$expectedPlanHash'."
 }
@@ -100,7 +100,29 @@ if ($taskCount -ne 5) {
     throw "Embedded Cargo Tracker plan contains $taskCount direct implementation tasks; expected 5."
 }
 
-$expectedBaselineSha = 'eac2f312760dc7d5b47bea75989294559c024cdc'
+foreach ($requiredPlanText in @(
+    'The prepared baseline executes the sequential',
+    'cd demo && ./mvnw -Popenliberty -Dtest=BookingServiceTest clean test',
+    'allowing the suite to grow when a feature adds another valid test',
+    'cargoRepository.find(trackingId)',
+    'executes five tests with zero failures, errors, or skipped tests'
+)) {
+    if (-not $plan.Contains($requiredPlanText)) {
+        throw "Embedded Cargo Tracker plan is missing corrected test guidance: $requiredPlanText"
+    }
+}
+foreach ($forbiddenPlanText in @(
+    'executing that Arquillian suite still requires its documented',
+    'remote Payara environment',
+    'retains the historical default `skipTests=true`',
+    'reload the cargo with `Cargo.findByTrackingId`'
+)) {
+    if ($plan.Contains($forbiddenPlanText)) {
+        throw "Embedded Cargo Tracker plan retains disproven test guidance: $forbiddenPlanText"
+    }
+}
+
+$expectedBaselineSha = '44b52082d4175af4c5fa92a107e87004f67fa418'
 $expectedSourceBranch = 'edburns/dd-3016202-cargotracker-devoxx-be-2026-experiment'
 foreach ($entry in @(
     [pscustomobject]@{ Name = 'baseline script'; Text = $baseline },

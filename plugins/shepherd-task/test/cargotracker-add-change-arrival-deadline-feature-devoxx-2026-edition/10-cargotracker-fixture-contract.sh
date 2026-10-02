@@ -67,7 +67,7 @@ for text in \
 done
 
 plan_hash="$(decode_plan_archive | gzip -dc | sha256_stream)"
-expected_plan_hash='55325888ac5c6fc22951b251ae4ae534c4a02c33d3d8c23c26b4125e7c616d08'
+expected_plan_hash='1b7654c7269dc629d9ac69a225ed728e82b00c4e9c5c57469a1c215b13eabc75'
 [[ "$plan_hash" == "$expected_plan_hash" ]] ||
     fail "Embedded Cargo Tracker plan hash '$plan_hash' does not match '$expected_plan_hash'."
 task_count="$(
@@ -81,8 +81,26 @@ task_count="$(
 )"
 [[ "$task_count" -eq 5 ]] ||
     fail "Embedded Cargo Tracker plan contains $task_count direct implementation tasks; expected 5."
+plan_text="$(decode_plan_archive | gzip -dc)"
+for required_plan_text in \
+    'The prepared baseline executes the sequential' \
+    'cd demo && ./mvnw -Popenliberty -Dtest=BookingServiceTest clean test' \
+    'allowing the suite to grow when a feature adds another valid test' \
+    'cargoRepository.find(trackingId)' \
+    'executes five tests with zero failures, errors, or skipped tests'; do
+    grep -Fq "$required_plan_text" <<<"$plan_text" ||
+        fail "Embedded Cargo Tracker plan is missing corrected test guidance: $required_plan_text"
+done
+for forbidden_plan_text in \
+    'executing that Arquillian suite still requires its documented' \
+    'remote Payara environment' \
+    'retains the historical default `skipTests=true`' \
+    'reload the cargo with `Cargo.findByTrackingId`'; do
+    ! grep -Fq "$forbidden_plan_text" <<<"$plan_text" ||
+        fail "Embedded Cargo Tracker plan retains disproven test guidance: $forbidden_plan_text"
+done
 
-expected_baseline_sha='eac2f312760dc7d5b47bea75989294559c024cdc'
+expected_baseline_sha='44b52082d4175af4c5fa92a107e87004f67fa418'
 expected_source_branch='edburns/dd-3016202-cargotracker-devoxx-be-2026-experiment'
 for file in "$baseline" "$driver"; do
     grep -Fq "$expected_baseline_sha" "$file" ||

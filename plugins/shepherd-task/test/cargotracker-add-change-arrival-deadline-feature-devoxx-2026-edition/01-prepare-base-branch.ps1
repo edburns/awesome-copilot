@@ -129,7 +129,7 @@ $plan = @'
 # Implementation plan: Change Arrival Deadline Date (`eclipse-ee4j/cargotracker#64`)
 
 Human DRI: Ed Burns
-Starting commit: `eac2f312760dc7d5b47bea75989294559c024cdc` (`Make the system ready for implementation`)
+Starting commit: `44b52082d4175af4c5fa92a107e87004f67fa418` (feature-free baseline with an extensible integration-test gate)
 Working directory: repository root of the current campaign worktree
 Cargo Tracker Maven application: `demo/`
 Runtime baseline: Java 17, Java EE 7 (`javax.*`), Open Liberty 26.0.0.8, PrimeFaces 8.0
@@ -205,7 +205,7 @@ Changing the deadline must:
 
 ### Hard scope constraints
 
-- Begin from commit `eac2f312760dc7d5b47bea75989294559c024cdc`.
+- Begin from commit `44b52082d4175af4c5fa92a107e87004f67fa418`.
 - Preserve Java EE 7 and the `javax.*` namespace.
 - Preserve the Java 7 source/target level used by this historical codebase.
 - Run the application on JDK 17 using the existing Open Liberty profile.
@@ -225,9 +225,11 @@ Changing the deadline must:
 
 ### Phase 1 ✅ — Establish a runnable feature-absent baseline
 
-- Commit `eac2f312760dc7d5b47bea75989294559c024cdc` is based on the historical
-  feature-absent commit and contains only the compatibility work needed to run
-  the sample on JDK 17 and Open Liberty.
+- Commit `44b52082d4175af4c5fa92a107e87004f67fa418` is based on the historical
+  feature-absent commit and contains the compatibility work needed to run the
+  sample on JDK 17 and Open Liberty plus an extensible integration-test gate
+  that preserves the four named baseline methods while permitting valid
+  additional tests.
 - `cd demo && ./mvnw clean package -Popenliberty liberty:run` starts the application.
 - The home page and Administration flows return HTTP 200.
 - JSF view metadata is placed at `UIViewRoot` scope for MyFaces compatibility.
@@ -566,51 +568,56 @@ after the old deadline, or after every itinerary leg. Pass the selected
 
 ### 3.9 — How will the feature be tested on the prepared historical baseline?
 
-**Question:** Which automated and runtime tests are mandatory, given that the
-historical JUnit/Arquillian suite is configured for a remote Payara 4
-container, while the prepared production baseline runs on JDK 17/Open Liberty?
+**Question:** Which automated and runtime tests are mandatory on the prepared
+JDK 17/Open Liberty baseline?
 
-The starting POM deliberately leaves `skipTests=true`. The Open Liberty profile
-builds and compiles all test sources but does not provide a Liberty Arquillian
-adapter. Modernizing the entire integration-test runtime is outside this
-feature's scope.
+The prepared baseline executes the sequential `BookingServiceTest` under Open
+Liberty with:
+
+```bash
+cd demo && ./mvnw -Popenliberty -Dtest=BookingServiceTest clean test
+```
+
+The feature-free baseline passes four ordered methods with zero failures,
+errors, or skipped tests. Its CI gate preserves those four named methods while
+allowing the suite to grow when a feature adds another valid test.
 
 The feature still needs layered evidence:
 
 1. Extend `BookingServiceTest` with the domain/application assertions that
    specify the deadline mutation.
-2. Ensure all test sources compile as part of
-   `cd demo && ./mvnw clean package -Popenliberty`.
-3. Add focused JUnit tests for facade and backing-bean delegation where they
+2. Run the complete `BookingServiceTest` under Open Liberty and require all
+   five ordered methods to pass with zero failures, errors, or skipped tests.
+3. Run `cd demo && ./mvnw clean package -Popenliberty` and require the complete
+   package gate to pass.
+4. Add focused JUnit tests for facade and backing-bean delegation where they
    can run without a container, using hand-written fakes rather than adding a
    mocking framework.
-4. Perform mandatory end-to-end verification against the running Open Liberty
+5. Perform mandatory end-to-end verification against the running Open Liberty
    application.
-5. Preserve the existing Payara Arquillian test path; do not delete, disable,
-   or rewrite it to manufacture a passing result.
 
-**Spike needed:** Before Issue 1 implementation, run the starting commit's
-standard Open Liberty package command and record whether tests are compiled but
-skipped. Confirm the new `BookingServiceTest` method can be added without
-expanding the runtime modernization scope.
+**Resolved evidence:** The prepared baseline runs `BookingServiceTest` in its
+managed Open Liberty test environment. The repository's injected
+`CargoRepository` is available in that test; a separately introduced
+test-level `EntityManager` injection is not. `JpaCargoRepository.find(...)`
+already executes the `Cargo.findByTrackingId` named query.
 
-**Recommendation:** Treat the JDK 17/Open Liberty build plus HTTP/UI acceptance
-as the mandatory executable gate. Keep the historical Arquillian test as a
-precise application-layer specification and run it only when its documented
-Payara environment is available.
+**Recommendation:** Use the existing injected repository to reload the cargo,
+run the dedicated Open Liberty integration tier, run the complete package
+gate, and retain HTTP/UI acceptance as the final user-visible proof. Do not add
+a second persistence access path or modernize the test runtime.
 
 **Resolution:**
 
 Extend the existing sequential Arquillian `BookingServiceTest` with
 `testChangeDeadline()` after `testChangeDestination()`. The test changes the
-deadline by one month, reloads the cargo through JPA, and asserts the complete
-set of preserved and recalculated domain state described above. The prepared
-Open Liberty build compiles this test but retains the historical default
-`skipTests=true`; executing that Arquillian suite still requires its documented
-remote Payara environment. Therefore the mandatory executable gates are the
-JDK 17 Open Liberty package/start command, direct HTTP checks, and the complete
-`DEF789` browser acceptance flow. No Arquillian-runtime modernization or new
-mocking dependency is part of this feature.
+deadline by one month, reloads the cargo through the injected
+`CargoRepository`, and asserts the complete set of preserved and recalculated
+domain state described above. Require five passing `BookingServiceTest`
+methods, a successful JDK 17 Open Liberty package gate, direct HTTP checks, and
+the complete `DEF789` browser acceptance flow. No test-runtime modernization,
+second persistence access path, or new mocking dependency is part of this
+feature.
 
 ---
 
@@ -631,6 +638,8 @@ or PrimeFaces changes.
 - `demo/src/main/java/org/eclipse/cargotracker/application/BookingService.java`
 - `demo/src/main/java/org/eclipse/cargotracker/application/internal/DefaultBookingService.java`
 - `demo/src/test/java/org/eclipse/cargotracker/application/BookingServiceTest.java`
+- `1-trick-out-01-remove-before-merge/evidence-matrix.md` for the required
+  implementation and validation evidence
 
 **Required API**
 
@@ -663,8 +672,8 @@ Do not:
 
 Append a sequential `testChangeDeadline()` case to `BookingServiceTest` after
 `testChangeDestination()`. Build a new deadline one month after the test's
-original `deadline`, invoke the service, reload the cargo with
-`Cargo.findByTrackingId`, and assert:
+original `deadline`, invoke the service, reload the cargo with the existing
+injected `cargoRepository.find(trackingId)` path, and assert:
 
 - origin remains Chicago;
 - destination remains Helsinki;
@@ -682,10 +691,13 @@ original `deadline`, invoke the service, reload the cargo with
 
 **Gating criteria**
 
-- The test source compiles.
+- `cd demo && ./mvnw -Popenliberty -Dtest=BookingServiceTest clean test`
+  executes five tests with zero failures, errors, or skipped tests.
 - `cd demo && ./mvnw clean package -Popenliberty` succeeds on JDK 17.
 - No web, facade, REST, Liberty, or persistence configuration files change in
   this issue.
+- The repository's extensible integration-test CI gate passes without a
+  workflow change in this issue.
 
 ### 4.2 — Issue 2: Expose deadline changes through the booking facade
 
@@ -992,7 +1004,8 @@ endpoints subsequently activate, as established by the prepared baseline.
 **Final regression and scope checks**
 
 - `cd demo && ./mvnw clean package -Popenliberty` succeeds.
-- The existing test sources and the new deadline test compile.
+- The dedicated Open Liberty `BookingServiceTest` tier executes all five
+  ordered tests with zero failures, errors, or skipped tests.
 - No Java EE namespace migration occurred.
 - No Open Liberty, Derby, Jackson, JSF metadata, batch authorization, or REST
   compatibility fix from the starting commit was reverted.
@@ -1035,7 +1048,7 @@ endpoints subsequently activate, as established by the prepared baseline.
 | Accessibility | Preserve visible labels; the date editor must have an associated label and validation feedback. |
 | Backward compatibility | Existing destination editing, routing, tracking, REST, messaging, batch, and startup behavior must remain intact. |
 | Test discipline | Add tests before production code where practical; every issue must preserve all prior gates. |
-| Experiment integrity | Implement from this specification starting at `eac2f312760dc7d5b47bea75989294559c024cdc`; do not cherry-pick or inspect feature-bearing commits. |
+| Experiment integrity | Implement from this specification starting at `44b52082d4175af4c5fa92a107e87004f67fa418`; do not cherry-pick or inspect feature-bearing commits. |
 '@
 Set-Content -LiteralPath (Join-Path $campaignMetadataPath $planFile) -Value $plan -Encoding utf8NoBOM
 
