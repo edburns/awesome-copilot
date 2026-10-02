@@ -11,7 +11,7 @@ phase.
 ## Fixed baseline
 
 - Source branch: `edburns/dd-3016202-cargotracker-devoxx-be-2026-experiment`
-- Baseline SHA: `5c7f3ca91a2c5bd93ec6aa5d52c63a5ffbd951c7`
+- Baseline SHA: `89e107c3ed6dd3655c2ffdf638b57d6c47099dab`
 - Shared baseline branch created by the fixture:
   `experiment/shepherd-shared-baseline`
 - Campaign branch: `edburns/dd-3016202-cargotracker-devoxx-be-2026-add-feature-control`
@@ -33,6 +33,12 @@ evidence-matrix maintenance requirement. Feature tasks retain the existing CI,
 tests, acceptance checks, and shepherd run telemetry without maintaining that
 historical matrix. The PowerShell initializer embeds the same resolved plan;
 offline contracts verify that both representations remain identical.
+
+The baseline also removes the superseded talk-preparation directory
+`dd-3016202-cargotracker-devoxx-be-2026-01-remove-before-merge/` and historical
+feature-plan directory `dd-3058828-cargotracker-remove-before-merge/`.
+Their contents remain available on the source repository's preservation branch,
+`edburns/dd-3016202-cargotracker-devoxx-be-2026-experiment-before-evidence-matrix-removal`.
 
 ## What it exercises
 

@@ -74,7 +74,7 @@ $planBytes = [System.Text.UTF8Encoding]::new($false).GetBytes($plan)
 $planHash = [Convert]::ToHexString(
     [System.Security.Cryptography.SHA256]::HashData($planBytes)
 ).ToLowerInvariant()
-$expectedPlanHash = '80ff91b8533967a8ef12eee9e75b06a514580c447e3b225d0cd7242571f766c1'
+$expectedPlanHash = '00ee56654e0296dd17b268a9239c11b4f5f7827d124ce834b05c896ce6ce0aae'
 if ($planHash -ne $expectedPlanHash) {
     throw "Embedded Cargo Tracker plan hash '$planHash' does not match '$expectedPlanHash'."
 }
@@ -147,7 +147,7 @@ foreach ($forbiddenPlanText in @(
     }
 }
 
-$expectedBaselineSha = '5c7f3ca91a2c5bd93ec6aa5d52c63a5ffbd951c7'
+$expectedBaselineSha = '89e107c3ed6dd3655c2ffdf638b57d6c47099dab'
 $expectedSourceBranch = 'edburns/dd-3016202-cargotracker-devoxx-be-2026-experiment'
 foreach ($entry in @(
     [pscustomobject]@{ Name = 'baseline script'; Text = $baseline },

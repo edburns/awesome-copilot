@@ -454,7 +454,7 @@ try {
     $BaselineBranch = 'experiment/shepherd-shared-baseline'
     $SourceBranch = 'edburns/dd-3016202-cargotracker-devoxx-be-2026-experiment'
     $ControlBranch = 'edburns/dd-3016202-cargotracker-devoxx-be-2026-add-feature-control'
-    $ExpectedBaselineSha = '5c7f3ca91a2c5bd93ec6aa5d52c63a5ffbd951c7'
+    $ExpectedBaselineSha = '89e107c3ed6dd3655c2ffdf638b57d6c47099dab'
 
     $CopilotHome = if ($env:COPILOT_HOME) {
         $env:COPILOT_HOME

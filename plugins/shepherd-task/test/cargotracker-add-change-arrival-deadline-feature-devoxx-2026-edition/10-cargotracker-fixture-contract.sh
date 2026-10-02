@@ -67,7 +67,7 @@ for text in \
 done
 
 plan_hash="$(decode_plan_archive | gzip -dc | sha256_stream)"
-expected_plan_hash='80ff91b8533967a8ef12eee9e75b06a514580c447e3b225d0cd7242571f766c1'
+expected_plan_hash='00ee56654e0296dd17b268a9239c11b4f5f7827d124ce834b05c896ce6ce0aae'
 [[ "$plan_hash" == "$expected_plan_hash" ]] ||
     fail "Embedded Cargo Tracker plan hash '$plan_hash' does not match '$expected_plan_hash'."
 task_count="$(
@@ -115,7 +115,7 @@ for forbidden_plan_text in \
         fail "Embedded Cargo Tracker plan retains disproven test guidance: $forbidden_plan_text"
 done
 
-expected_baseline_sha='5c7f3ca91a2c5bd93ec6aa5d52c63a5ffbd951c7'
+expected_baseline_sha='89e107c3ed6dd3655c2ffdf638b57d6c47099dab'
 expected_source_branch='edburns/dd-3016202-cargotracker-devoxx-be-2026-experiment'
 for file in "$baseline" "$driver"; do
     grep -Fq "$expected_baseline_sha" "$file" ||
