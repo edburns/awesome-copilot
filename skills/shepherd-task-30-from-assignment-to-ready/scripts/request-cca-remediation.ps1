@@ -91,6 +91,12 @@ function Invoke-GitHub([string]$OutputPath, [string[]]$Arguments) {
     }
     $info = [Diagnostics.ProcessStartInfo]::new()
     $info.FileName = $ghCommand
+    if ([IO.Path]::GetExtension($ghCommand) -eq '.ps1') {
+        $info.FileName = (Get-Process -Id $PID).Path
+        foreach ($argument in @('-NoProfile', '-File', $ghCommand)) {
+            $info.ArgumentList.Add($argument)
+        }
+    }
     $info.UseShellExecute = $false
     $info.RedirectStandardOutput = $true
     $info.RedirectStandardError = $true

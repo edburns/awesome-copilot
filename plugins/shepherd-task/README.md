@@ -154,15 +154,30 @@ responses are rejected, but wall-clock adjustments can affect the windows and
 `elapsedMs` diagnostics. PowerShell retains its monotonic .NET clock and bounded
 subprocess waits; logical parity does not imply identical cancellation timing.
 
-Run the focused offline contracts with
-`node --test plugins/shepherd-task/test/cca-remediation-contract.mjs`.
-Node.js is a test-runner dependency only. These contracts execute the native
-Bash and PowerShell helpers with mocked GitHub/clock commands on Unix, verify
-publication readback separately from lifecycle completion, compare result
-parity, and install only into a temporary `COPILOT_HOME`. PowerShell tests are
-explicitly skipped if `pwsh` is unavailable. Real Windows/macOS and paid
-cross-platform campaigns remain separate release evidence; a local contract
-pass does not substitute for them.
+Run the native offline contracts independently:
+
+```bash
+bash plugins/shepherd-task/test/cca-remediation-contract.sh
+```
+
+```powershell
+pwsh -NoProfile -File plugins/shepherd-task/test/cca-remediation-contract.ps1
+```
+
+Each suite uses its own shell-native mocks under `test/fixtures/cca-remediation/`
+and the shared `cases.tsv` scenario table. Neither suite requires Node.js or the
+other shell. They execute the shipped helpers, verify publication separately
+from lifecycle completion, and install only into a temporary `COPILOT_HOME`.
+The Bash suite also covers soft-deadline overruns and the production date clock.
+For cross-shell result comparison, pass an output JSONL path as the Bash
+suite's first argument or PowerShell's `-ResultsPath`; both export the common
+matrix without nondeterministic timestamps/messages.
+
+PowerShell's `GH_COMMAND` override accepts a `.ps1` fixture, launched with the
+current PowerShell executable under the same existing subprocess bounds; normal
+`gh` execution is unchanged. The mocks use no JavaScript or executable shims.
+Real Windows/macOS and paid cross-platform campaigns remain separate release
+evidence; a local contract pass does not substitute for them.
 
 To remove the installed plugin and shepherd skills without touching campaign
 directories:
