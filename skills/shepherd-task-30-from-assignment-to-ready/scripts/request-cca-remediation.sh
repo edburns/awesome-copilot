@@ -8,7 +8,6 @@ CLOCK_COMMAND="${SHEPHERD_REMEDIATION_CLOCK_COMMAND:-}"
 SLEEP_COMMAND="${SHEPHERD_REMEDIATION_SLEEP_COMMAND:-sleep}"
 PHASE_A_MS=120000
 PHASE_C_MS=600000
-REQUEST_MS=60000
 started=0 deadline=0 phase_start=0 reassigned=false
 request_id=null boundary="" original="" current=""
 snapshot='{}' baseline='{}'
@@ -24,9 +23,11 @@ now() {
     if [[ -n "$CLOCK_COMMAND" ]]; then
         value="$("$CLOCK_COMMAND")"
     else
-        value="$(perl "$SCRIPT_DIR/cca-remediation-clock.pl" now)"
+        value="$(date +%s)" || return 1
+        [[ "$value" =~ ^[0-9]+$ ]] || { echo "Invalid wall-clock seconds" >&2; return 1; }
+        value=$((value * 1000))
     fi
-    [[ "$value" =~ ^[0-9]+$ ]] || { echo "Invalid monotonic clock output" >&2; return 1; }
+    [[ "$value" =~ ^[0-9]+$ ]] || { echo "Invalid clock output in milliseconds" >&2; return 1; }
     printf '%s\n' "$value"
 }
 
@@ -61,7 +62,7 @@ finish() {
     exit "$code"
 }
 
-for tool in jq perl "$GH_COMMAND" "$SLEEP_COMMAND"; do
+for tool in jq date "$GH_COMMAND" "$SLEEP_COMMAND"; do
     command -v "$tool" >/dev/null || { echo "Required command not found: $tool" >&2; exit 2; }
 done
 started="$(now)"
@@ -75,32 +76,34 @@ trap 'rm -rf "$temp"' EXIT
 printf '{}\n' >"$temp/baseline.json"
 query='query($owner:String!,$name:String!,$number:Int!,$endCursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){number state isDraft baseRefName headRefOid body closingIssuesReferences(first:100,after:$endCursor){nodes{number repository{nameWithOwner}}pageInfo{hasNextPage endCursor}}}}}'
 
+within_deadline() {
+    local observed
+    ((deadline > 0)) || return 0
+    observed="$(now)" || exit 2
+    ((observed < deadline))
+}
+
 gh_call() {
-    local output="$1" remaining status
+    local output="$1" status
     shift
-    remaining=$REQUEST_MS
-    if ((deadline > 0)); then
-        remaining=$((deadline - $(now)))
-        ((remaining > 0)) || timeout_result
-        ((remaining <= REQUEST_MS)) || remaining=$REQUEST_MS
-    fi
-    if perl "$SCRIPT_DIR/cca-remediation-clock.pl" run "$remaining" \
-        "$GH_COMMAND" "$@" >"$output" 2>"$temp/gh-error"; then
+    within_deadline || return 1
+    if "$GH_COMMAND" "$@" >"$output" 2>"$temp/gh-error"; then
         :
     else
         status=$?
         cat "$temp/gh-error" >&2
-        if ((status == 124 && deadline > 0 && $(now) >= deadline)); then timeout_result; fi
         fail api-error 3 "GitHub command failed (exit $status); request state may need reconciliation"
     fi
+    # Soft deadlines cannot interrupt gh; discard an overdue poll response.
+    within_deadline
 }
 
 read_snapshot() {
     local observed
     gh_call "$temp/pr.json" api graphql --paginate --slurp \
-        -f query="$query" -f owner="${repo%%/*}" -f name="${repo#*/}" -F number="$number"
+        -f query="$query" -f owner="${repo%%/*}" -f name="${repo#*/}" -F number="$number" || return 1
     gh_call "$temp/timeline.json" api "/repos/$repo/issues/$number/timeline?per_page=100" \
-        --paginate --slurp -H "Accept: application/vnd.github+json"
+        --paginate --slurp -H "Accept: application/vnd.github+json" || return 1
     if observed="$(jq -n --slurpfile pr "$temp/pr.json" --slurpfile timeline "$temp/timeline.json" \
         --slurpfile baseline "$temp/baseline.json" \
         --arg repo "$repo" --arg issue "$issue" --arg number "$number" --arg base "$base" \
@@ -151,7 +154,7 @@ fi
 request_id="$(jq -r '.id' "$temp/review.json")"
 boundary="$(jq -r '.submitted_at' "$temp/review.json")"
 phase_start="$(now)"
-deadline=$((phase_start + PHASE_A_MS))
+# Verify the mutation even if its readback consumes the organic engagement window.
 gh_call "$temp/readback.json" api "/repos/$repo/pulls/$number/reviews/$request_id"
 if ! jq -e --slurpfile sent "$temp/review.json" '
     .id == $sent[0].id and .body == $sent[0].body and
@@ -159,10 +162,11 @@ if ! jq -e --slurpfile sent "$temp/review.json" '
     .submitted_at == $sent[0].submitted_at' "$temp/readback.json" >/dev/null; then
     fail invalid-state 4 "Remediation review failed read-after-write verification"
 fi
+deadline=$((phase_start + PHASE_A_MS))
 
 engaged=false
 while (($(now) < deadline)); do
-    read_snapshot
+    read_snapshot || break
     (($(now) < deadline)) || break
     if jq -e '.latestStart != null' <<<"$snapshot" >/dev/null || [[ "$current" != "$original" ]]; then
         engaged=true
@@ -187,16 +191,17 @@ fi
 phase_start="$(now)"
 deadline=$((phase_start + PHASE_C_MS))
 while (($(now) < deadline)); do
-    read_snapshot
+    read_snapshot || break
     (($(now) < deadline)) || break
     if jq -e '.failed' <<<"$snapshot" >/dev/null; then
         fail agent-failed 9 "Fresh CCA cycle explicitly failed; substantive changes still require validation"
     fi
     if jq -e '.completed' <<<"$snapshot" >/dev/null; then
         candidate="$current"
-        read_snapshot
+        read_snapshot || break
         (($(now) < deadline)) || break
         if [[ "$candidate" == "$current" ]] && jq -e '.completed and (.failed | not)' <<<"$snapshot" >/dev/null; then
+            within_deadline || break
             finish cycle-completed 0 "Fresh CCA cycle completed; correction and readiness have NOT been accepted"
         fi
     fi

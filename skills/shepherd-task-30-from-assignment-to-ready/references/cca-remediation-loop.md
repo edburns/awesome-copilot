@@ -49,15 +49,26 @@ successful Stage 30 outcome.
 ## Maintained helper contract
 
 The native Bash and PowerShell drivers use `scripts/cca-remediation-state.jq`
-for shared JSON validation. Bash additionally uses
-`scripts/cca-remediation-clock.pl` for monotonic timing and bounded subprocess
-execution (Perl with core Time::HiRes is required); PowerShell 7 uses .NET.
+for shared JSON validation. Bash uses `date +%s` wall-clock time and ordinary
+`gh` execution; PowerShell 7 retains its monotonic .NET clock and bounded
+subprocess waits.
 Both require `gh` and `jq`. No Node.js or npm packages are required at runtime.
 
 The helper preserves the existing 120-second organic re-engagement window
 (15-second polling), one explicit reassignment if needed, and a 600-second
-completion window (30-second polling). API calls have a 60-second upper bound,
-also capped by the remaining polling deadline. A failed/uncertain mutation
+completion window (30-second polling). Bash checks these soft deadlines before
+and after polling API calls, and before accepting completion. It cannot
+interrupt a hung `gh` command: an in-flight call can exceed the nominal window,
+and wall-clock adjustments can shorten or lengthen the wait. There is no hard
+Bash request or overall runtime limit. An overdue Phase A response does not
+establish engagement; the existing one-time reassignment policy applies before
+the completion window. Review readback must still be verified even if it
+consumes the organic engagement window. An overdue Phase C response cannot
+establish completion.
+
+PowerShell API calls retain their 60-second upper bound, also capped by the
+remaining polling deadline. Logical outcomes are shared, not identical real-time
+cancellation behavior. A failed/uncertain mutation
 requires reconciliation, not an automatic duplicate review or reassignment.
 It does not introduce grace periods, progress leases, or extra attempts.
 
@@ -75,7 +86,7 @@ review-to-agent-session identifier. Ambiguous or malformed evidence fails closed
 |---|---|---|
 | `cycle-completed` | 0 | Fresh cycle completed, with or without a changed HEAD. Revalidate the correction. |
 | `invalid-input` | 2 | Invocation or prerequisite is invalid. Stop. |
-| `api-error` | 3 | Request failed or exceeded its per-request bound. Reconcile any uncertain mutation, then stop. |
+| `api-error` | 3 | Request failed (or exceeded PowerShell's per-request bound). Reconcile any uncertain mutation, then stop. |
 | `invalid-state` | 4 | Response malformed, review readback failed, or an authoritative invariant changed. Stop. |
 | `unchanged-head-timeout` | 8 | No completed fresh cycle within the deadline; HEAD unchanged. Stop. |
 | `changed-head-incomplete-cycle` | 8 | Partial push without verified completion by the deadline. Stop; no extra Step 3 wait. |
@@ -83,9 +94,12 @@ review-to-agent-session identifier. Ambiguous or malformed evidence fails closed
 
 The version-1 JSON result records repository/issue/PR/base, request identity and
 server timestamp, original/current HEAD and `headChanged`, event IDs/timestamps,
-monotonic elapsed milliseconds, window budgets, reassignment status, and whether
+elapsed milliseconds, window budgets, reassignment status, and whether
 the PR description changed. `acceptance` is always `not-evaluated`;
 `nextAction: revalidate` is returned only for `cycle-completed`.
+For Bash, `elapsedMs` is the wall-clock difference at second resolution
+multiplied by 1000; clock adjustments affect it and may make it negative.
+PowerShell elapsed time remains monotonic. The result schema is unchanged.
 
 ## Completion is not acceptance
 

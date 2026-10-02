@@ -70,9 +70,6 @@ instructions expected by stage 30.
 - Authenticate the `copilot` CLI and accept that orchestration uses
   `copilot --yolo`.
 - Install `git`, `jq`, and `uuidgen`; PowerShell users need PowerShell 7.
-- Bash Stage 30 remediation additionally needs Perl with core `Time::HiRes`
-  (`CLOCK_MONOTONIC`) for portable monotonic deadlines and bounded subprocess
-  waits on GNU/Linux and macOS. PowerShell uses .NET for these operations.
 - Provide a local environment capable of running every gating command named in
   the child issues.
 
@@ -132,7 +129,7 @@ The scripts can also be run directly from this checkout.
 
 Stage 30 remediation invokes the committed `request-cca-remediation.sh` or
 `.ps1` helper rather than generating a polling loop from skill prose. The
-implementation and its JSON/clock assets live in the Stage 30 skill's
+implementation and its JSON validation asset live in the Stage 30 skill's
 `scripts/` directory, so the skill is self-contained in standalone and
 marketplace installs. The plugin's same-named script entrypoints delegate to
 that bundled skill (or the source skill when run from a checkout). The existing
@@ -149,6 +146,13 @@ See the Stage 30 skill's `references/cca-remediation-loop.md` for invocation,
 versioned JSON outcomes, publication readback, and the explicit policy change
 to the old unchanged-HEAD rule in `edburns/awesome-copilot#15`. Timeout windows,
 the 20-attempt cap, final readiness gates, and redaction behavior are unchanged.
+
+Bash uses `date +%s` and invokes `gh` directly, with no additional runtime
+dependency. Its 120/600-second polling deadlines are soft: an in-flight `gh`
+call can overrun them and cannot be forcibly interrupted. Overdue completion
+responses are rejected, but wall-clock adjustments can affect the windows and
+`elapsedMs` diagnostics. PowerShell retains its monotonic .NET clock and bounded
+subprocess waits; logical parity does not imply identical cancellation timing.
 
 Run the focused offline contracts with
 `node --test plugins/shepherd-task/test/cca-remediation-contract.mjs`.

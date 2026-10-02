@@ -12,6 +12,7 @@ const skillName = 'shepherd-task-30-from-assignment-to-ready';
 const skill = path.resolve(plugin, '../../skills', skillName);
 const sha = 'a'.repeat(40);
 const newSha = 'b'.repeat(40);
+const quote = text => `'${text.replaceAll("'", "'\\''")}'`;
 const boundary = '2026-10-02T12:00:00Z';
 const event = (id, kind, date = boundary, app = 'copilot-swe-agent') => ({
   id, event: `copilot_work_${kind}`, created_at: date, performed_via_github_app: { slug: app },
@@ -39,21 +40,31 @@ function fixture(action, args) {
     assert.equal(input.commit_id, sha);
     state.review = { id: 50, state: 'CHANGES_REQUESTED', body: input.body, commit_id: sha, submitted_at: boundary };
     state.posts++;
+    if (state.scenario === 'uncertain-review') {
+      save(); process.stderr.write('mock connection lost after review mutation'); process.exit(19);
+    }
     emit(state.review); return;
   }
   if (endpoint?.endsWith('/reviews/50')) {
-    emit({ ...state.review, body: state.scenario === 'bad-readback' ? 'not published' : state.review.body }); return;
+    if (['phase-a-readback-overrun', 'bad-readback-overrun'].includes(state.scenario)) state.time += 120000;
+    emit({ ...state.review, body: ['bad-readback', 'bad-readback-overrun'].includes(state.scenario) ? 'not published' : state.review.body }); return;
   }
   if (args.includes('POST') && endpoint.endsWith('/assignees')) {
     const input = JSON.parse(readFileSync(args[args.indexOf('--input') + 1]));
     assert.deepEqual(input, { assignees: ['copilot-swe-agent[bot]'], agent_assignment: { target_repo: 'owner/repo', base_branch: 'campaign-base' } });
     state.assigned++;
+    if (state.scenario === 'uncertain-reassignment') {
+      save(); process.stderr.write('mock connection lost after reassignment mutation'); process.exit(19);
+    }
     emit({ assignees: [{ login: 'copilot-swe-agent[bot]' }] }); return;
   }
   const scenario = state.scenario;
   if (args[1] === 'graphql') {
     assert(args.includes('--paginate') && args.includes('--slurp'));
     const poll = state.poll++;
+    if (scenario === 'phase-a-query-overrun' && poll === 1) state.time += 120000;
+    if (scenario === 'phase-c-query-overrun' && poll === 2) state.time += 600000;
+    if (scenario === 'final-query-overrun' && poll === 3) state.time += 600000;
     const changed = poll > 0 && ['changed', 'partial', 'stale', 'newer-start', 'failed-diff'].includes(scenario);
     const pr = {
       number: 11, state: 'OPEN', isDraft: true, baseRefName: 'campaign-base',
@@ -98,9 +109,11 @@ function fixture(action, args) {
       if (scenario === 'conflicting-id') fresh.push(event(101, 'started'));
       if (scenario === 'missing-app') delete fresh[0].performed_via_github_app;
       if (scenario === 'foreign-agent') fresh = fresh.map(e => ({ ...e, performed_via_github_app: { slug: 'copilot-pull-request-reviewer' } }));
-      if (scenario === 'no-engagement' || (scenario === 'reassign' && state.assigned === 0)) fresh = [];
+      if (['no-engagement', 'uncertain-reassignment'].includes(scenario) || (scenario === 'reassign' && state.assigned === 0)) fresh = [];
       if (scenario === 'stale-only') fresh = [];
       if (scenario === 'late-completion' && poll >= 2) state.time += 600000;
+      if (scenario === 'phase-a-timeline-overrun' && poll === 1) state.time += 120000;
+      if (scenario === 'final-timeline-overrun' && poll === 3) state.time += 600000;
       events.push(...fresh);
     }
     emit(scenario === 'pagination' ? [
@@ -125,7 +138,6 @@ if (process.argv[2] === '--fixture') {
     writeFileSync(path.join(root, 'state.json'), JSON.stringify({
       scenario, time: 1000000, poll: 0, posts: 0, assigned: 0, calls: [],
     }));
-    const quote = text => `'${text.replaceAll("'", "'\\''")}'`;
     for (const action of ['gh', 'clock', 'sleep']) {
       writeFileSync(path.join(root, action),
         `#!/bin/sh\nexec ${quote(process.execPath)} ${quote(self)} --fixture ${action} "$@"\n`, { mode: 0o755 });
@@ -185,6 +197,8 @@ if (process.argv[2] === '--fixture') {
     ['graphql-error', 4, 'invalid-state'],
     ['bad-readback', 4, 'invalid-state'],
     ['api-error', 3, 'api-error'],
+    ['uncertain-review', 3, 'api-error'],
+    ['uncertain-reassignment', 3, 'api-error'],
     ['malformed-json', 4, 'invalid-state'],
   ];
   for (const shell of platforms) {
@@ -213,6 +227,11 @@ if (process.argv[2] === '--fixture') {
             if (scenario === 'no-publication') assert.equal(result.json.descriptionChanged, false);
             if (scenario === 'changed') assert.equal(result.json.headChanged, true);
             if (scenario === 'active-before-request') assert.equal(state.posts, 0);
+            if (scenario.startsWith('uncertain-')) {
+              assert.equal(state.posts, 1);
+              assert.equal(state.assigned, scenario === 'uncertain-reassignment' ? 1 : 0);
+              assert(result.stderr.includes('request state may need reconciliation'));
+            }
             if (code === 8) assert(result.json.elapsedMs >= 600000);
           });
         }
@@ -265,20 +284,67 @@ if (process.argv[2] === '--fixture') {
     assert(reference.includes('ineffective\nremediation'));
     assert(reference.includes('rerun all normal gates'));
     assert(!reference.includes('while ['));
-    for (const asset of ['request-cca-remediation.sh', 'request-cca-remediation.ps1', 'cca-remediation-state.jq', 'cca-remediation-clock.pl']) {
+    for (const asset of ['request-cca-remediation.sh', 'request-cca-remediation.ps1', 'cca-remediation-state.jq']) {
       assert(instructions.includes(`scripts/${asset}`));
       assert(existsSync(path.join(skill, 'scripts', asset)));
     }
   });
-  test('Bash monotonic clock and subprocess timeout execute without wall-clock dependence', () => {
-    const clock = path.join(skill, 'scripts/cca-remediation-clock.pl');
-    const before = spawnSync('perl', [clock, 'now'], { encoding: 'utf8' });
-    const after = spawnSync('perl', [clock, 'now'], { encoding: 'utf8' });
-    assert(Number(after.stdout) >= Number(before.stdout));
-    const timeout = spawnSync('perl', [clock, 'run', '50', 'perl', '-e', 'sleep 5'], { encoding: 'utf8' });
-    assert.equal(timeout.status, 124);
-    const error = spawnSync('perl', [clock, 'run', '1000', 'perl', '-e', 'exit 7'], { encoding: 'utf8' });
-    assert.equal(error.status, 7);
+  test('Bash production clock uses date seconds and executes without Perl', () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'cca-wall-clock-contract-'));
+    try {
+      const dateCommand = spawnSync('sh', ['-c', 'command -v date'], { encoding: 'utf8' });
+      assert.equal(dateCommand.status, 0);
+      const env = environment(root, 'evidence');
+      env.SHEPHERD_REMEDIATION_CLOCK_COMMAND = '';
+      env.PATH = `${root}${path.delimiter}${process.env.PATH}`;
+      const dateCalls = path.join(root, 'date-calls');
+      const perlCalled = path.join(root, 'perl-called');
+      writeFileSync(path.join(root, 'date'), `#!/bin/sh\nprintf '%s\\n' "$*" >> ${quote(dateCalls)}\nexec ${quote(dateCommand.stdout.trim())} "$@"\n`, { mode: 0o755 });
+      writeFileSync(path.join(root, 'perl'), `#!/bin/sh\nprintf 'unexpected Perl invocation\\n' > ${quote(perlCalled)}\nexit 99\n`, { mode: 0o755 });
+      const before = Date.now();
+      const result = invoke('bash', root, env);
+      const after = Date.now();
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.json.outcome, 'cycle-completed');
+      assert.equal(result.json.elapsedMs % 1000, 0);
+      assert(result.json.elapsedMs >= 0 && result.json.elapsedMs <= after - before + 1000);
+      assert(readFileSync(dateCalls, 'utf8').split('\n').filter(line => line === '+%s').length >= 3);
+      assert(!existsSync(perlCalled));
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+  test('Bash soft deadlines reject overdue polls and retain one-time Phase A re-engagement', async t => {
+    const root = mkdtempSync(path.join(tmpdir(), 'cca-soft-deadline-contract-'));
+    try {
+      for (const [scenario, status, assigned] of [
+        ['phase-a-query-overrun', 0, 1],
+        ['phase-a-timeline-overrun', 0, 1],
+        ['phase-a-readback-overrun', 0, 1],
+        ['bad-readback-overrun', 4, 0],
+        ['phase-c-query-overrun', 8, 0],
+        ['late-completion', 8, 0],
+        ['final-query-overrun', 8, 0],
+        ['final-timeline-overrun', 8, 0],
+      ]) {
+        await t.test(scenario, () => {
+          const result = invoke('bash', root, environment(root, scenario));
+          assert.equal(result.status, status, result.stderr);
+          const state = JSON.parse(readFileSync(path.join(root, 'state.json')));
+          assert.equal(state.posts, 1);
+          assert.equal(state.assigned, assigned);
+          assert.equal(result.json.acceptance, 'not-evaluated');
+          assert.equal(result.json.nextAction, status === 0 ? 'revalidate' : 'stop');
+          if (status === 0) {
+            assert.equal(result.json.outcome, 'cycle-completed');
+            assert(result.json.elapsedMs >= 120000);
+            assert(state.poll >= 3, 'Completion must use new Phase C observations, not the expired Phase A response');
+          }
+          if (status === 8) {
+            assert.equal(result.json.outcome, 'unchanged-head-timeout');
+            assert(result.json.elapsedMs >= 600000);
+          }
+        });
+      }
+    } finally { rmSync(root, { recursive: true, force: true }); }
   });
   test('isolated installer ships executable skill assets without touching the active installation', () => {
     const root = mkdtempSync(path.join(tmpdir(), 'cca-install-contract-'));
@@ -289,9 +355,12 @@ if (process.argv[2] === '--fixture') {
       assert.equal(installed.status, 0, installed.stdout + installed.stderr);
       const globalSkill = path.join(env.COPILOT_HOME, 'skills', skillName);
       const installedPlugin = path.join(env.COPILOT_HOME, 'plugins/shepherd-task');
-      for (const asset of ['request-cca-remediation.sh', 'request-cca-remediation.ps1', 'cca-remediation-state.jq', 'cca-remediation-clock.pl']) {
+      for (const asset of ['request-cca-remediation.sh', 'request-cca-remediation.ps1', 'cca-remediation-state.jq']) {
         for (const destination of [globalSkill, path.join(installedPlugin, 'skills', skillName)]) {
           assert.deepEqual(readFileSync(path.join(destination, 'scripts', asset)), readFileSync(path.join(skill, 'scripts', asset)));
+        }
+        for (const destination of [globalSkill, path.join(installedPlugin, 'skills', skillName)]) {
+          assert(!existsSync(path.join(destination, 'scripts/cca-remediation-clock.pl')));
         }
       }
       for (const shell of platforms) {

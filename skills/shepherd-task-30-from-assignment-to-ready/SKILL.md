@@ -427,9 +427,9 @@ full. It is the mandatory 20-iteration remediation procedure for gathering CI
 and review failures and invoking the bundled
 [`scripts/request-cca-remediation.sh`](scripts/request-cca-remediation.sh) or
 [`scripts/request-cca-remediation.ps1`](scripts/request-cca-remediation.ps1).
-These native drivers use [`scripts/cca-remediation-state.jq`](scripts/cca-remediation-state.jq);
-Bash uses [`scripts/cca-remediation-clock.pl`](scripts/cca-remediation-clock.pl)
-for monotonic deadlines. Execute these files, never regenerate their polling
+These native drivers use [`scripts/cca-remediation-state.jq`](scripts/cca-remediation-state.jq).
+Bash uses soft wall-clock deadlines; PowerShell retains monotonic .NET timing
+and bounded subprocess waits. Execute these files, never regenerate their polling
 logic. A completed fresh cycle, even without a new commit, returns to full
 validation in Step 3; it does not establish that the correction was accepted.
 
