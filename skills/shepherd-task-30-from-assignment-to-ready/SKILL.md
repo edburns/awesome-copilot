@@ -424,8 +424,14 @@ Do not replace issue-specified commands with narrower checks. If a command requi
 Read and follow
 [`references/cca-remediation-loop.md`](references/cca-remediation-loop.md) in
 full. It is the mandatory 20-iteration remediation procedure for gathering CI
-and review failures, requesting targeted changes, re-engaging CCA when needed,
-and proving the new PR head before returning to Step 3.
+and review failures and invoking the bundled
+[`scripts/request-cca-remediation.sh`](scripts/request-cca-remediation.sh) or
+[`scripts/request-cca-remediation.ps1`](scripts/request-cca-remediation.ps1).
+These native drivers use [`scripts/cca-remediation-state.jq`](scripts/cca-remediation-state.jq);
+Bash uses [`scripts/cca-remediation-clock.pl`](scripts/cca-remediation-clock.pl)
+for monotonic deadlines. Execute these files, never regenerate their polling
+logic. A completed fresh cycle, even without a new commit, returns to full
+validation in Step 3; it does not establish that the correction was accepted.
 
 ### Step 8: Address pre-Ready-for-Review comments
 
@@ -459,7 +465,10 @@ gh pr view "$PR_NUMBER" -R "$REPO" --comments --json comments \
 
 #### 8.2: If unresolved comments exist, iterate
 
-Use the same pattern as Step 7: compose a review requesting changes with specific instructions, wait for Copilot to push, approve workflows, and check results. This shares the same 20-iteration budget.
+Use the same committed remediation helper as Step 7 to submit the targeted
+review and wait for a fresh completed cycle. This shares the same 20-iteration
+budget. Return to all validation gates on completion, including readback and
+assessment of evidence-only corrections when HEAD is unchanged.
 
 ### Step 9: Atomic final readiness gate and status report
 

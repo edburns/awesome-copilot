@@ -1,167 +1,139 @@
-# Stage 30 CCA remediation and re-engagement loop
+# Stage 30 CCA remediation and re-engagement
 
-### Step 7: Request changes from Copilot (iteration loop)
+## Step 7: Request targeted changes (shared maximum: 20 attempts)
 
-**Max iterations: 20**
+Steps 4, 6, 7, and 8 use this same attempt budget. Gather the actual failed
+current-HEAD CI logs, unresolved review threads, or missing issue deliverables.
+Compose a targeted review beginning `@copilot Please fix the following issues:`.
+Include relevant excerpts and the specific correction required. For evidence
+requests, name the required publication destination and exact tested HEAD.
+Do not request unrelated code changes or a dummy commit.
 
-When CI fails or review agents flag problems:
+Persist the review body in a UTF-8 file in the run artifact directory. Invoke
+the committed helper below **instead of submitting the review separately**.
+It captures the pre-request state before the triggering mutation, submits the
+review pinned to the expected HEAD, reads it back, and waits for a fresh CCA
+cycle. Do not synthesize or copy a polling loop into the session.
 
-#### 7.1: Gather failure details
+`SKILL_DIR` means the absolute directory containing the SKILL.md loaded for
+this invocation, not the campaign working directory. All helper assets are
+bundled with that skill, including in standalone and marketplace installs.
 
-```bash
-# Get failed run IDs
-FAILED_RUNS=$(gh run list -R $REPO --branch "$JTBDTASK_BRANCH" \
-  --status completed --json databaseId,conclusion,name \
-  --jq '.[] | select(.conclusion == "failure") | .databaseId')
-
-# Get logs for failed runs (only failed steps)
-for RUN_ID in $FAILED_RUNS; do
-  gh run view $RUN_ID -R $REPO --log-failed
-done
-```
-
-#### 7.2: Gather review agent comments
-
-```bash
-# Get review comments on the PR
-gh api "/repos/$REPO/pulls/$PR_NUMBER/comments" \
-  --jq '.[] | select(.user.type == "Bot") | {user: .user.login, body: .body}'
-
-# Also get issue-level comments (review agents sometimes post there)
-gh pr view $PR_NUMBER -R $REPO --comments --json comments \
-  --jq '.comments[] | select(.author.login | test("bot|copilot|agent"; "i")) | {author: .author.login, body: .body}'
-```
-
-#### 7.3: Compose and submit a "Request changes" review
-
-Analyze the failures and compose a hybrid message: relevant log excerpts plus a short targeted instruction for Copilot.
+Bash:
 
 ```bash
-# Submit review requesting changes, @mentioning Copilot
-gh pr review $PR_NUMBER -R $REPO --request-changes --body "$REVIEW_BODY"
+bash "$SKILL_DIR/scripts/request-cca-remediation.sh" \
+  "$REPO" "$TASK_ISSUE" "$PR_NUMBER" "$BASE_BRANCH" "$HEAD_SHA" \
+  "$REVIEW_BODY_PATH" > "$REMEDIATION_RESULT_PATH"
 ```
 
-The `$REVIEW_BODY` should follow this format:
+PowerShell:
 
-```
-@copilot Please fix the following issues:
-
-## CI Failure: [workflow name]
-
-<relevant log excerpt, trimmed to the essential error>
-
-**Fix:** [Short, specific instruction on what to change]
-
-## Review Comment from [bot name]
-
-> [quoted comment]
-
-**Fix:** [Short, specific instruction on what to change]
+```powershell
+& (Join-Path $SKILL_DIR 'scripts/request-cca-remediation.ps1') `
+  -Repo $REPO -Issue $TASK_ISSUE -PullRequest $PR_NUMBER `
+  -BaseBranch $BASE_BRANCH -ExpectedHead $HEAD_SHA `
+  -ReviewBodyPath $REVIEW_BODY_PATH > $REMEDIATION_RESULT_PATH
+$remediationExit = $LASTEXITCODE
+if ($remediationExit -ne 0) {
+    throw "SHEPHERD FAILED: remediation helper exited $remediationExit; inspect $REMEDIATION_RESULT_PATH"
+}
 ```
 
-#### 7.4: Wait for Copilot to push fixes (with re-engagement)
+Use a distinct result path for each attempt and a blocking tool invocation.
+Inspect the native exit status and JSON result before taking any next action.
+Missing/invalid JSON, nonzero exit, or any outcome other than `cycle-completed`
+is a failure, never permission to proceed. The result does not constitute a
+successful Stage 30 outcome.
 
-After submitting the review, CCA may or may not re-engage automatically. Once CCA has emitted `copilot_work_finished`, a review comment alone may not restart it. This step uses a two-phase approach: first wait briefly for organic re-engagement, then explicitly re-assign CCA if needed.
+## Maintained helper contract
 
-```bash
-# Record the review submission timestamp and current HEAD
-REVIEW_SUBMITTED_AT=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-CURRENT_SHA=$(gh pr view $PR_NUMBER -R $REPO --json headRefOid --jq '.headRefOid')
+The native Bash and PowerShell drivers use `scripts/cca-remediation-state.jq`
+for shared JSON validation. Bash additionally uses
+`scripts/cca-remediation-clock.pl` for monotonic timing and bounded subprocess
+execution (Perl with core Time::HiRes is required); PowerShell 7 uses .NET.
+Both require `gh` and `jq`. No Node.js or npm packages are required at runtime.
 
-# --- Phase A: Wait up to 2 minutes for CCA to organically re-engage ---
-PHASE_A_TIMEOUT=120
-INTERVAL=15
-ELAPSED=0
-CCA_REENGAGED=false
+The helper preserves the existing 120-second organic re-engagement window
+(15-second polling), one explicit reassignment if needed, and a 600-second
+completion window (30-second polling). API calls have a 60-second upper bound,
+also capped by the remaining polling deadline. A failed/uncertain mutation
+requires reconciliation, not an automatic duplicate review or reassignment.
+It does not introduce grace periods, progress leases, or extra attempts.
 
-while [ $ELAPSED -lt $PHASE_A_TIMEOUT ]; do
-  # Check for a new copilot_work_started event after our review
-  TIMELINE=$(gh api "/repos/$REPO/issues/$PR_NUMBER/timeline?per_page=100" \
-    -H "Accept: application/vnd.github+json" 2>/dev/null)
-  NEW_START=$(printf '%s' "$TIMELINE" | jq -r --arg after "$REVIEW_SUBMITTED_AT" \
-    '[.[] | select(.event == "copilot_work_started") | .created_at | select(. >= $after)] | first // empty')
-  if [ -n "$NEW_START" ]; then
-    CCA_REENGAGED=true
-    echo "CCA re-engaged organically at $NEW_START"
-    break
-  fi
-  # Also check if HEAD already changed (CCA pushed without a visible start event)
-  NEW_SHA=$(gh pr view $PR_NUMBER -R $REPO --json headRefOid --jq '.headRefOid')
-  if [ "$NEW_SHA" != "$CURRENT_SHA" ]; then
-    CCA_REENGAGED=true
-    echo "CCA pushed new HEAD $NEW_SHA (no explicit work_started observed)"
-    break
-  fi
-  sleep $INTERVAL
-  ELAPSED=$((ELAPSED + INTERVAL))
-done
+It checks authoritative exact repository/issue linkage, open/draft state, base,
+and HEAD, with paginated closing references and timeline. A pre-existing active
+CCA cycle is rejected before a review is submitted. Fresh CCA events must be
+absent from the pre-request snapshot and no earlier than the server's review
+submission timestamp. Only `copilot-swe-agent` events count, not similarly
+named review-agent events. Event IDs order equal-second events, and the latest
+fresh start must have a subsequent successful terminal event. These are
+observable correlation boundaries, not a claim that the API exposes a causal
+review-to-agent-session identifier. Ambiguous or malformed evidence fails closed.
 
-# --- Phase B: If CCA did not re-engage, explicitly re-assign ---
-if [ "$CCA_REENGAGED" != true ]; then
-  echo "CCA did not re-engage within ${PHASE_A_TIMEOUT}s. Re-assigning task to trigger a new work cycle."
-  gh api --method POST \
-    -H "Accept: application/vnd.github+json" \
-    -H "X-GitHub-Api-Version: 2022-11-28" \
-    "/repos/$REPO/issues/$TASK_ISSUE/assignees" \
-    --input - <<< "{
-      \"assignees\": [\"copilot-swe-agent[bot]\"],
-      \"agent_assignment\": {
-        \"target_repo\": \"$REPO\",
-        \"base_branch\": \"$BASE_BRANCH\"
-      }
-    }" > /dev/null
-fi
+| Outcome | Exit | Meaning / next action |
+|---|---|---|
+| `cycle-completed` | 0 | Fresh cycle completed, with or without a changed HEAD. Revalidate the correction. |
+| `invalid-input` | 2 | Invocation or prerequisite is invalid. Stop. |
+| `api-error` | 3 | Request failed or exceeded its per-request bound. Reconcile any uncertain mutation, then stop. |
+| `invalid-state` | 4 | Response malformed, review readback failed, or an authoritative invariant changed. Stop. |
+| `unchanged-head-timeout` | 8 | No completed fresh cycle within the deadline; HEAD unchanged. Stop. |
+| `changed-head-incomplete-cycle` | 8 | Partial push without verified completion by the deadline. Stop; no extra Step 3 wait. |
+| `agent-failed` | 9 | Fresh cycle explicitly failed. Stop; a substantive diff does not make it a successful cycle. |
 
-# --- Phase C: Wait for CCA to complete a full work cycle (up to 10 minutes) ---
-PHASE_C_TIMEOUT=600
-ELAPSED=0
+The version-1 JSON result records repository/issue/PR/base, request identity and
+server timestamp, original/current HEAD and `headChanged`, event IDs/timestamps,
+monotonic elapsed milliseconds, window budgets, reassignment status, and whether
+the PR description changed. `acceptance` is always `not-evaluated`;
+`nextAction: revalidate` is returned only for `cycle-completed`.
 
-while [ $ELAPSED -lt $PHASE_C_TIMEOUT ]; do
-  # Check for new HEAD
-  NEW_SHA=$(gh pr view $PR_NUMBER -R $REPO --json headRefOid --jq '.headRefOid')
-  if [ "$NEW_SHA" != "$CURRENT_SHA" ]; then
-    # Verify CCA actually finished (not mid-cycle)
-    TIMELINE=$(gh api "/repos/$REPO/issues/$PR_NUMBER/timeline?per_page=100" \
-      -H "Accept: application/vnd.github+json" 2>/dev/null)
-    LATEST_START=$(printf '%s' "$TIMELINE" | jq -r \
-      '[.[] | select(.event == "copilot_work_started") | .created_at] | max // empty')
-    LATEST_FINISH=$(printf '%s' "$TIMELINE" | jq -r \
-      '[.[] | select(.event == "copilot_work_finished") | .created_at] | max // empty')
-    if [ -n "$LATEST_START" ] && [ -n "$LATEST_FINISH" ] \
-        && [[ "$LATEST_FINISH" > "$LATEST_START" || "$LATEST_FINISH" == "$LATEST_START" ]]; then
-      echo "CCA completed work cycle. New HEAD: $NEW_SHA"
-      break
-    fi
-  fi
-  sleep 30
-  ELAPSED=$((ELAPSED + 30))
-done
+## Completion is not acceptance
 
-# --- Diagnostic output on failure ---
-if [ "$NEW_SHA" = "$CURRENT_SHA" ]; then
-  TIMELINE=$(gh api "/repos/$REPO/issues/$PR_NUMBER/timeline?per_page=100" \
-    -H "Accept: application/vnd.github+json" 2>/dev/null)
-  LAST_FINISH=$(printf '%s' "$TIMELINE" | jq -r \
-    '[.[] | select(.event == "copilot_work_finished") | .created_at] | max // "none"')
-  LAST_START=$(printf '%s' "$TIMELINE" | jq -r \
-    '[.[] | select(.event == "copilot_work_started") | .created_at] | max // "none"')
-  echo "SHEPHERD FAILED: CCA did not push fixes for PR #$PR_NUMBER within ${PHASE_C_TIMEOUT}s after re-engagement attempt."
-  echo "  Review posted at: $REVIEW_SUBMITTED_AT"
-  echo "  Last copilot_work_started: $LAST_START"
-  echo "  Last copilot_work_finished: $LAST_FINISH"
-  echo "  Re-assignment attempted: $([ "$CCA_REENGAGED" = true ] && echo 'no (organic)' || echo 'yes')"
-  echo "  HEAD unchanged at: $CURRENT_SHA"
-  exit 8
-fi
-```
+After `cycle-completed`, return to **Step 3** and rerun all normal gates,
+including effective diff, issue deliverables, commands, CI, reviews, and the
+atomic final HEAD check. A changed HEAD invalidates evidence for the old
+revision. An unchanged HEAD permits evidence-only remediation; it does not
+prove that either code or evidence was corrected.
 
-After a new SHA appears and CCA's work cycle is complete, return to **Step 3**. Wait for the latest CCA work cycle to finish, re-prove the nonempty effective diff, rebuild the issue-requirement evidence table, and rerun every validation gate. A new commit invalidates all evidence collected for the previous SHA.
+For evidence requests, re-fetch and read the actual required PR description,
+comment, or artifact. Verify the exact tested HEAD, command results, and
+human-versus-agent provenance. Compare the published content with the request,
+not with an agent's assertion that it published something. A changed description
+alone cannot prove adequate evidence. If the agent claims a description update
+but `descriptionChanged` is false, report the contradiction and inspect the
+authoritative body. A "done" comment cannot replace evidence required in the
+description.
 
-#### 7.5: Loop back
+When this session writes a PR description, first inspect and preserve the
+repository's PR template, existing implementation summary, and closing-issue
+reference. Read back the persisted text before claiming publication succeeded.
+The plugin's `verify-github-issue-body.sh` / `.ps1` accepts a PR number as its
+issue number (the issue REST resource holds the PR body); use it to compare an
+expected persisted body when available. Text equality proves publication only,
+not substantive acceptance.
 
-Return to **Step 3** and repeat. Track iteration count. If 20 iterations are exhausted without all checks passing, stop and report:
+If the requested correction is absent or inadequate, label it **ineffective
+remediation** and spend another attempt from the same 20-attempt budget, or stop
+when exhausted. Do not restart the budget, submit empty commits, invent evidence,
+dismiss reviews automatically, or mark ready merely because the helper exited 0.
+Keep requirement assessment and browser/code correctness judgments in the skill.
 
-```
-SHEPHERD FAILED: Exhausted 20 iterations on PR #$PR_NUMBER for task #$TASK_ISSUE.
+On exhaustion:
+
+```text
+SHEPHERD FAILED: Exhausted 20 iterations on PR #PR_NUMBER for task #TASK_ISSUE.
 Manual intervention required.
 ```
+
+## Policy coordination
+
+This focused implementation covers the remediation slice of
+`edburns/awesome-copilot#1`, not its full discovery/initial-lifecycle campaign.
+It also fixes `edburns/awesome-copilot#15`'s partial-push timeout fall-through.
+It intentionally supersedes #15's old requirement that a finished cycle without
+a new HEAD must fail: replace that row/test with "completed unchanged-HEAD cycle
+returns to full validation; missing or ineffective evidence still fails
+acceptance." No claim is made that the original failed campaign passed.
+
+Progress-aware deadline policy (`edburns/awesome-copilot#3`) and redaction
+optimization (`edburns/awesome-copilot#16`) are unchanged and out of scope.

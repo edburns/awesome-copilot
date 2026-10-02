@@ -70,6 +70,9 @@ instructions expected by stage 30.
 - Authenticate the `copilot` CLI and accept that orchestration uses
   `copilot --yolo`.
 - Install `git`, `jq`, and `uuidgen`; PowerShell users need PowerShell 7.
+- Bash Stage 30 remediation additionally needs Perl with core `Time::HiRes`
+  (`CLOCK_MONOTONIC`) for portable monotonic deadlines and bounded subprocess
+  waits on GNU/Linux and macOS. PowerShell uses .NET for these operations.
 - Provide a local environment capable of running every gating command named in
   the child issues.
 
@@ -124,6 +127,38 @@ as `sourceCommit`. It rejects a downgrade unless explicitly allowed:
 ```
 
 The scripts can also be run directly from this checkout.
+
+### Evidence-only remediation
+
+Stage 30 remediation invokes the committed `request-cca-remediation.sh` or
+`.ps1` helper rather than generating a polling loop from skill prose. The
+implementation and its JSON/clock assets live in the Stage 30 skill's
+`scripts/` directory, so the skill is self-contained in standalone and
+marketplace installs. The plugin's same-named script entrypoints delegate to
+that bundled skill (or the source skill when run from a checkout). The existing
+installer and plugin composition copy these assets without a separate install
+step.
+
+A fresh completed coding-agent cycle returns to full validation whether or
+not HEAD changed. It never directly accepts a correction or marks the PR ready.
+Missing published evidence still fails acceptance, and a changed HEAD without
+a completed cycle fails at the existing deadline. Review-agent lifecycle events
+cannot satisfy this coding-agent gate.
+
+See the Stage 30 skill's `references/cca-remediation-loop.md` for invocation,
+versioned JSON outcomes, publication readback, and the explicit policy change
+to the old unchanged-HEAD rule in `edburns/awesome-copilot#15`. Timeout windows,
+the 20-attempt cap, final readiness gates, and redaction behavior are unchanged.
+
+Run the focused offline contracts with
+`node --test plugins/shepherd-task/test/cca-remediation-contract.mjs`.
+Node.js is a test-runner dependency only. These contracts execute the native
+Bash and PowerShell helpers with mocked GitHub/clock commands on Unix, verify
+publication readback separately from lifecycle completion, compare result
+parity, and install only into a temporary `COPILOT_HOME`. PowerShell tests are
+explicitly skipped if `pwsh` is unavailable. Real Windows/macOS and paid
+cross-platform campaigns remain separate release evidence; a local contract
+pass does not substitute for them.
 
 To remove the installed plugin and shepherd skills without touching campaign
 directories:
