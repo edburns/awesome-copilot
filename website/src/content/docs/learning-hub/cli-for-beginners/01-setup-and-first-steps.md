@@ -3,7 +3,7 @@ title: '01 · First Steps'
 description: 'Experience your first GitHub Copilot CLI demos and learn the three main interaction modes.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-17
+lastUpdated: 2026-10-02
 ---
 
 ![Chapter 01: First Steps](/images/learning-hub/copilot-cli-for-beginners/01/chapter-header.png)
@@ -479,10 +479,10 @@ Copilot CLI supports multiple AI models from OpenAI, Anthropic, Google, and othe
 copilot
 > /model
 
-# Shows available models and lets you pick one. Select Sonnet 4.5.
+# Shows available models and lets you pick one. Examples: GPT-6 Sol, GPT-6 Luna, Claude Sonnet 5.5, Claude Opus 5.5.
 ```
 
-> 💡 **Tip**: Some models cost more "premium requests" than others. Models marked **1x** (like Claude Sonnet 4.5) are a great default. They're capable and efficient. Higher-multiplier models use your premium request quota faster, so save those for when you really need them.
+> 💡 **Tip**: Copilot CLI usage is measured in **GitHub AI Credits**. The number of credits used depends on the model you select and how many tokens the task consumes. More capable models may cost more, so use lighter models for routine tasks and save powerful reasoning models for complex work. Run `/usage` to see how many AI credits your current session has used.
 
 </details>
 
