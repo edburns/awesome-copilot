@@ -326,7 +326,7 @@ control_worktree="$workareas_dir/$repository_name-shepherd-control"
 baseline_branch="experiment/shepherd-shared-baseline"
 source_branch="edburns/dd-3016202-cargotracker-devoxx-be-2026-experiment"
 control_branch="edburns/dd-3016202-cargotracker-devoxx-be-2026-add-feature-control"
-expected_baseline_sha="44b52082d4175af4c5fa92a107e87004f67fa418"
+expected_baseline_sha="5c7f3ca91a2c5bd93ec6aa5d52c63a5ffbd951c7"
 
 copilot_home="${COPILOT_HOME:-$HOME/.copilot}"
 shepherd_plugin="$copilot_home/plugins/shepherd-task"

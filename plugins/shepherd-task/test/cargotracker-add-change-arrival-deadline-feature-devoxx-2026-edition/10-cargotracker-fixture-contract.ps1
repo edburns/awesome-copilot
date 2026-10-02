@@ -74,9 +74,34 @@ $planBytes = [System.Text.UTF8Encoding]::new($false).GetBytes($plan)
 $planHash = [Convert]::ToHexString(
     [System.Security.Cryptography.SHA256]::HashData($planBytes)
 ).ToLowerInvariant()
-$expectedPlanHash = '1b7654c7269dc629d9ac69a225ed728e82b00c4e9c5c57469a1c215b13eabc75'
+$expectedPlanHash = '80ff91b8533967a8ef12eee9e75b06a514580c447e3b225d0cd7242571f766c1'
 if ($planHash -ne $expectedPlanHash) {
     throw "Embedded Cargo Tracker plan hash '$planHash' does not match '$expectedPlanHash'."
+}
+
+$archiveBytes = [Convert]::FromBase64String(
+    [System.IO.File]::ReadAllText((Join-Path $PSScriptRoot 'cargotracker-plan.md.gz.b64'))
+)
+$archiveStream = [System.IO.MemoryStream]::new($archiveBytes)
+$gzipStream = [System.IO.Compression.GZipStream]::new(
+    $archiveStream, [System.IO.Compression.CompressionMode]::Decompress
+)
+$reader = [System.IO.StreamReader]::new($gzipStream)
+try {
+    $archivedPlan = $reader.ReadToEnd()
+}
+finally {
+    $reader.Dispose()
+    $gzipStream.Dispose()
+    $archiveStream.Dispose()
+}
+if ($archivedPlan -cne $plan) {
+    throw 'Bash plan archive and PowerShell plan differ.'
+}
+foreach ($obsoleteReference in @('1-trick-out-01-remove-before-merge', 'evidence-matrix.md')) {
+    if ($plan.Contains($obsoleteReference)) {
+        throw "Embedded plan retains an obsolete campaign reference: $obsoleteReference"
+    }
 }
 
 $implementationHeading = '## Phase 4 — Implementation (five serial issues)'
@@ -122,7 +147,7 @@ foreach ($forbiddenPlanText in @(
     }
 }
 
-$expectedBaselineSha = '44b52082d4175af4c5fa92a107e87004f67fa418'
+$expectedBaselineSha = '5c7f3ca91a2c5bd93ec6aa5d52c63a5ffbd951c7'
 $expectedSourceBranch = 'edburns/dd-3016202-cargotracker-devoxx-be-2026-experiment'
 foreach ($entry in @(
     [pscustomobject]@{ Name = 'baseline script'; Text = $baseline },

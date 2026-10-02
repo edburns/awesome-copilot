@@ -67,7 +67,7 @@ for text in \
 done
 
 plan_hash="$(decode_plan_archive | gzip -dc | sha256_stream)"
-expected_plan_hash='1b7654c7269dc629d9ac69a225ed728e82b00c4e9c5c57469a1c215b13eabc75'
+expected_plan_hash='80ff91b8533967a8ef12eee9e75b06a514580c447e3b225d0cd7242571f766c1'
 [[ "$plan_hash" == "$expected_plan_hash" ]] ||
     fail "Embedded Cargo Tracker plan hash '$plan_hash' does not match '$expected_plan_hash'."
 task_count="$(
@@ -82,6 +82,21 @@ task_count="$(
 [[ "$task_count" -eq 5 ]] ||
     fail "Embedded Cargo Tracker plan contains $task_count direct implementation tasks; expected 5."
 plan_text="$(decode_plan_archive | gzip -dc)"
+powershell_plan="$(
+    awk '
+      { sub(/\r$/, "") }
+      $0 == "$plan = @" sprintf("%c", 39) { in_plan=1; next }
+      in_plan && $0 == sprintf("%c", 39) "@" { exit }
+      in_plan { print }
+    ' "$fixture_root/01-prepare-base-branch.ps1"
+)"
+[[ "$plan_text" == "$powershell_plan" ]] ||
+    fail "Bash plan archive and PowerShell plan differ."
+for obsolete_reference in '1-trick-out-01-remove-before-merge' 'evidence-matrix.md'; do
+    if grep -Fq "$obsolete_reference" <<<"$plan_text"; then
+        fail "Embedded plan retains an obsolete campaign reference: $obsolete_reference"
+    fi
+done
 for required_plan_text in \
     'The prepared baseline executes the sequential' \
     'cd demo && ./mvnw -Popenliberty -Dtest=BookingServiceTest clean test' \
@@ -100,7 +115,7 @@ for forbidden_plan_text in \
         fail "Embedded Cargo Tracker plan retains disproven test guidance: $forbidden_plan_text"
 done
 
-expected_baseline_sha='44b52082d4175af4c5fa92a107e87004f67fa418'
+expected_baseline_sha='5c7f3ca91a2c5bd93ec6aa5d52c63a5ffbd951c7'
 expected_source_branch='edburns/dd-3016202-cargotracker-devoxx-be-2026-experiment'
 for file in "$baseline" "$driver"; do
     grep -Fq "$expected_baseline_sha" "$file" ||

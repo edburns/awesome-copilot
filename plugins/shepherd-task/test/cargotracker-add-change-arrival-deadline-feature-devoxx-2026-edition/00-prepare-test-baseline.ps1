@@ -23,7 +23,7 @@ param(
     [string]$SourceBranch = 'edburns/dd-3016202-cargotracker-devoxx-be-2026-experiment',
 
     [ValidatePattern('^[0-9a-fA-F]{40}$')]
-    [string]$ExpectedBaselineSha = '44b52082d4175af4c5fa92a107e87004f67fa418'
+    [string]$ExpectedBaselineSha = '5c7f3ca91a2c5bd93ec6aa5d52c63a5ffbd951c7'
 )
 
 Set-StrictMode -Version Latest

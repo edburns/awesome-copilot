@@ -129,7 +129,7 @@ $plan = @'
 # Implementation plan: Change Arrival Deadline Date (`eclipse-ee4j/cargotracker#64`)
 
 Human DRI: Ed Burns
-Starting commit: `44b52082d4175af4c5fa92a107e87004f67fa418` (feature-free baseline with an extensible integration-test gate)
+Starting commit: `5c7f3ca91a2c5bd93ec6aa5d52c63a5ffbd951c7` (feature-free baseline with an extensible integration-test gate)
 Working directory: repository root of the current campaign worktree
 Cargo Tracker Maven application: `demo/`
 Runtime baseline: Java 17, Java EE 7 (`javax.*`), Open Liberty 26.0.0.8, PrimeFaces 8.0
@@ -205,7 +205,7 @@ Changing the deadline must:
 
 ### Hard scope constraints
 
-- Begin from commit `44b52082d4175af4c5fa92a107e87004f67fa418`.
+- Begin from commit `5c7f3ca91a2c5bd93ec6aa5d52c63a5ffbd951c7`.
 - Preserve Java EE 7 and the `javax.*` namespace.
 - Preserve the Java 7 source/target level used by this historical codebase.
 - Run the application on JDK 17 using the existing Open Liberty profile.
@@ -225,7 +225,7 @@ Changing the deadline must:
 
 ### Phase 1 ✅ — Establish a runnable feature-absent baseline
 
-- Commit `44b52082d4175af4c5fa92a107e87004f67fa418` is based on the historical
+- Commit `5c7f3ca91a2c5bd93ec6aa5d52c63a5ffbd951c7` is based on the historical
   feature-absent commit and contains the compatibility work needed to run the
   sample on JDK 17 and Open Liberty plus an extensible integration-test gate
   that preserves the four named baseline methods while permitting valid
@@ -638,8 +638,6 @@ or PrimeFaces changes.
 - `demo/src/main/java/org/eclipse/cargotracker/application/BookingService.java`
 - `demo/src/main/java/org/eclipse/cargotracker/application/internal/DefaultBookingService.java`
 - `demo/src/test/java/org/eclipse/cargotracker/application/BookingServiceTest.java`
-- `1-trick-out-01-remove-before-merge/evidence-matrix.md` for the required
-  implementation and validation evidence
 
 **Required API**
 
@@ -1048,7 +1046,7 @@ endpoints subsequently activate, as established by the prepared baseline.
 | Accessibility | Preserve visible labels; the date editor must have an associated label and validation feedback. |
 | Backward compatibility | Existing destination editing, routing, tracking, REST, messaging, batch, and startup behavior must remain intact. |
 | Test discipline | Add tests before production code where practical; every issue must preserve all prior gates. |
-| Experiment integrity | Implement from this specification starting at `44b52082d4175af4c5fa92a107e87004f67fa418`; do not cherry-pick or inspect feature-bearing commits. |
+| Experiment integrity | Implement from this specification starting at `5c7f3ca91a2c5bd93ec6aa5d52c63a5ffbd951c7`; do not cherry-pick or inspect feature-bearing commits. |
 '@
 Set-Content -LiteralPath (Join-Path $campaignMetadataPath $planFile) -Value $plan -Encoding utf8NoBOM
 

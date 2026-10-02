@@ -11,7 +11,7 @@ phase.
 ## Fixed baseline
 
 - Source branch: `edburns/dd-3016202-cargotracker-devoxx-be-2026-experiment`
-- Baseline SHA: `44b52082d4175af4c5fa92a107e87004f67fa418`
+- Baseline SHA: `5c7f3ca91a2c5bd93ec6aa5d52c63a5ffbd951c7`
 - Shared baseline branch created by the fixture:
   `experiment/shepherd-shared-baseline`
 - Campaign branch: `edburns/dd-3016202-cargotracker-devoxx-be-2026-add-feature-control`
@@ -27,6 +27,12 @@ or deleted by this fixture.
 The resolved five-task plan is stored as `cargotracker-plan.md.gz.b64`. The
 Bash initializer verifies its SHA-256 digest before decoding it, preserving the
 exact fixture content across installed and checked-out locations.
+
+The baseline removes the historical CI-construction campaign directory and its
+evidence-matrix maintenance requirement. Feature tasks retain the existing CI,
+tests, acceptance checks, and shepherd run telemetry without maintaining that
+historical matrix. The PowerShell initializer embeds the same resolved plan;
+offline contracts verify that both representations remain identical.
 
 ## What it exercises
 
