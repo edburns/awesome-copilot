@@ -152,7 +152,9 @@ try {
         (Join-Path $installedPlugin 'test\cargotracker-add-change-arrival-deadline-feature\run-campaign.sh'),
         (Join-Path $installedPlugin 'test\cargotracker-add-change-arrival-deadline-feature\run-campaign.ps1'),
         (Join-Path $installedPlugin 'test\cargotracker-add-change-arrival-deadline-feature-devoxx-2026-edition\run-campaign.sh'),
-        (Join-Path $installedPlugin 'test\cargotracker-add-change-arrival-deadline-feature-devoxx-2026-edition\run-campaign.ps1')
+        (Join-Path $installedPlugin 'test\cargotracker-add-change-arrival-deadline-feature-devoxx-2026-edition\run-campaign.ps1'),
+        (Join-Path $installedPlugin 'test\cargotracker-add-change-arrival-deadline-feature-devoxx-2026-edition-control\run-campaign.sh'),
+        (Join-Path $installedPlugin 'test\cargotracker-add-change-arrival-deadline-feature-devoxx-2026-edition-control\run-campaign.ps1')
     )) {
         if (-not (Test-Path -LiteralPath $installedDriver -PathType Leaf)) {
             throw "Installed campaign driver is missing: $installedDriver"

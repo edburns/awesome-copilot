@@ -645,6 +645,7 @@ PowerShell equivalents are included for each helper.
 | `test/simple-math/00-*` through `11-*` | Prepare, create, verify, and contract-test the simple-math campaign in Bash or PowerShell |
 | `test/cargotracker-add-change-arrival-deadline-feature/run-campaign.*` | Run the installed five-task Cargo Tracker control campaign end to end |
 | `test/cargotracker-add-change-arrival-deadline-feature/00-*` through `12-*` | Prepare, create, verify, and contract-test the Cargo Tracker campaign in Bash or PowerShell |
+| `test/cargotracker-add-change-arrival-deadline-feature-devoxx-2026-edition-control/run-campaign.*` | Run the tagged five-task control specification against the Devoxx control branch at `634f3ca4787c84fd652cdf5c883c37f1098e0c61`, without the experiment's test/CI additions |
 | `test/macos-bash-compatibility-contract.sh` | Reject Bash 4-only syntax, nonportable base64 decode operands, and GNU-only command usage from installed Bash scripts and skill snippets |
 
 ## Additional resources

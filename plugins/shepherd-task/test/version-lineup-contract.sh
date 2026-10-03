@@ -76,7 +76,9 @@ for installed_driver in \
     "$COPILOT_HOME/plugins/shepherd-task/test/cargotracker-add-change-arrival-deadline-feature/run-campaign.sh" \
     "$COPILOT_HOME/plugins/shepherd-task/test/cargotracker-add-change-arrival-deadline-feature/run-campaign.ps1" \
     "$COPILOT_HOME/plugins/shepherd-task/test/cargotracker-add-change-arrival-deadline-feature-devoxx-2026-edition/run-campaign.sh" \
-    "$COPILOT_HOME/plugins/shepherd-task/test/cargotracker-add-change-arrival-deadline-feature-devoxx-2026-edition/run-campaign.ps1"; do
+    "$COPILOT_HOME/plugins/shepherd-task/test/cargotracker-add-change-arrival-deadline-feature-devoxx-2026-edition/run-campaign.ps1" \
+    "$COPILOT_HOME/plugins/shepherd-task/test/cargotracker-add-change-arrival-deadline-feature-devoxx-2026-edition-control/run-campaign.sh" \
+    "$COPILOT_HOME/plugins/shepherd-task/test/cargotracker-add-change-arrival-deadline-feature-devoxx-2026-edition-control/run-campaign.ps1"; do
     [[ -f "$installed_driver" ]] || {
         echo "Installed campaign driver is missing: $installed_driver" >&2
         exit 1
@@ -85,6 +87,7 @@ done
 [[ -x "$COPILOT_HOME/plugins/shepherd-task/test/simple-math/run-campaign.sh" ]]
 [[ -x "$COPILOT_HOME/plugins/shepherd-task/test/cargotracker-add-change-arrival-deadline-feature/run-campaign.sh" ]]
 [[ -x "$COPILOT_HOME/plugins/shepherd-task/test/cargotracker-add-change-arrival-deadline-feature-devoxx-2026-edition/run-campaign.sh" ]]
+[[ -x "$COPILOT_HOME/plugins/shepherd-task/test/cargotracker-add-change-arrival-deadline-feature-devoxx-2026-edition-control/run-campaign.sh" ]]
 
 mock_bin="$temp_root/mock-bin"
 mkdir -p "$mock_bin"
@@ -139,10 +142,19 @@ mkdir -p "$validation_workareas"
         echo "Installed Devoxx Cargo Tracker Bash driver validation failed." >&2
         exit 1
     fi
+    if ! PATH="$mock_bin:$PATH" \
+        "$COPILOT_HOME/plugins/shepherd-task/test/cargotracker-add-change-arrival-deadline-feature-devoxx-2026-edition-control/run-campaign.sh" \
+        https://github.com/owner/cargotracker-devoxx-control-validation \
+        "$validation_workareas" \
+        --validate-installed-only >/dev/null; then
+        echo "Installed Devoxx control Cargo Tracker Bash driver validation failed." >&2
+        exit 1
+    fi
 )
 [[ ! -e "$validation_workareas/simple-math-validation-shepherd-target" ]]
 [[ ! -e "$validation_workareas/cargotracker-validation-shepherd-target" ]]
 [[ ! -e "$validation_workareas/cargotracker-devoxx-validation-shepherd-target" ]]
+[[ ! -e "$validation_workareas/cargotracker-devoxx-control-validation-shepherd-target" ]]
 
 jq -e --arg version "$version" '
   .shepherdTaskVersion == $version and
