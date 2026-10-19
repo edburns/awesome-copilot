@@ -213,6 +213,16 @@ Or from an interactive session:
 
 > **Deprecation notice**: Installing plugins directly from a GitHub repository URL, raw URL, or local file path (e.g., `copilot plugin install github/awesome-copilot`) is deprecated and will be removed in a future release. Use marketplace-based installation instead.
 
+### From a GitHub install link
+
+Verified skills and plugins can also be installed from a GitHub install link:
+
+```bash
+copilot plugin install "ghapp://air/install?..."
+```
+
+Use the exact link provided by GitHub. Plugins from trusted repositories install and update automatically before chat runs.
+
 ### From VS Code
 
 Browse to the plugin via `@agentPlugins` in the Extensions search view or via **Chat: Plugins** in the Command Palette, then click **Install**.
