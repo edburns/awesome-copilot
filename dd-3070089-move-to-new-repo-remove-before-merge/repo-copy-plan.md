@@ -26,6 +26,138 @@ divergent development, or carry the parent repository along.
 it does not create a GitHub repository, rewrite history, install the plugin,
 modify source branches, or push anything.
 
+## Execution progress checklist
+
+This section is the durable execution tracker. All execution steps are initially
+unchecked; preparing or reviewing this plan does not complete them.
+
+**Current state:** Not started; awaiting authorization to execute.
+**Current step:** P0.1.
+**Blockers:** Execution has not been authorized.
+**Last checkpoint:** No migration commands executed.
+
+Update this section after each completed step and before pausing or handing off:
+
+- Check an item only after its expected outcome is verified and its evidence
+  recorded. Starting a command is not completion.
+- Use the stable step IDs below in checkpoint notes and evidence filenames.
+  Record exact validation commands, exit codes/results, relevant SHAs, and
+  artifact paths under `$WORK/evidence/`. Keep secrets and raw sensitive output
+  out of this plan and published provenance.
+- Update the current state, current step, blockers, and last checkpoint above.
+  Append a dated checkpoint note below with completed IDs, evidence locations,
+  and the next action. Record human approvals explicitly.
+- Leave blocked or failed items unchecked and record the reason. Mark optional
+  work as not applicable in a checkpoint note rather than claiming it passed.
+  Required gates cannot be waived implicitly.
+- If inputs, the allowlist, or the rewrite change, uncheck affected steps and
+  their dependent verification/publication gates. Retain earlier evidence as
+  superseded rather than reusing it as proof for a new result.
+- On resumption, read this tracker and its evidence first. Verify existing
+  artifacts before continuing; do not rerun the fresh-directory setup against
+  an existing `$WORK` or repeat completed mutations blindly.
+
+### Preparation and authorization
+
+- [ ] **P0.1** Obtain explicit authorization to execute this migration plan.
+- [ ] **P0.2** Confirm source identity, worktree state, required tools, and that
+  `$HOME/workareas/shepherd-task-migration-work-directory` does not exist.
+- [ ] **P0.3** Create the migration workspace and private evidence directory;
+  record execution time and tool versions.
+
+### Phase 1: frozen inputs and scope
+
+- [ ] **P1.1** Fetch exactly the seven named branches into the isolated source
+  snapshot and record each full tip SHA.
+- [ ] **P1.2** Compare all fetched tips with the planning table; obtain and
+  record approval for any differences before proceeding.
+- [ ] **P1.3** Create and verify the private pre-filter source bundle.
+- [ ] **P1.4** Audit historical paths, renames, predecessor files, mixed commits,
+  catalog wiring, and temporary campaign material across all seven histories.
+- [ ] **P1.5** Finalize the retained-path allowlist and classification/exclusion
+  ledger, including decisions about any partial-file extraction.
+- [ ] **P1.6** Obtain and record approval of the allowlist and scope ledger.
+
+### Phase 2: disposable history rewrite
+
+- [ ] **P2.1** Create the fresh disposable mirror and filter it using the
+  approved allowlist and documented options.
+- [ ] **P2.2** Preserve the commit map and reconcile all seven rewritten branch
+  tips with their original tips; investigate missing or unexpected mappings.
+- [ ] **P2.3** Review retained historical blobs and commit messages for
+  sensitive material; resolve findings and regenerate affected evidence.
+
+### Phase 3: `main` and historical ancestry
+
+- [ ] **P3.1** Clone only the filtered repository, create `main` from the active
+  rewritten tip, and record/tag the baseline tree.
+- [ ] **P3.2** Create all six archival branches and attach any missing
+  historical lineages using the documented history-only merges.
+- [ ] **P3.3** Verify every archival tip is an ancestor of `main` and every
+  history-only merge preserves the active baseline tree.
+
+### Phase 4: standalone adaptation
+
+- [ ] **P4.1** Add the root landing README, unchanged source license with
+  provenance, minimal ignore/line-ending rules, and contributor guidance.
+- [ ] **P4.2** Update repository metadata and active workshop/examples while
+  preserving the source layout and existing composition contract.
+- [ ] **P4.3** Add focused native Bash and PowerShell CI without importing
+  unrelated catalog tooling.
+- [ ] **P4.4** Record the release-version decision and apply any approved bump
+  through the existing estate-wide version command.
+- [ ] **P4.5** Add sanitized migration provenance and commit the standalone
+  adaptations separately from the extracted history.
+
+### Phase 5: verification and publication gate
+
+- [ ] **P5.1** Verify path/mode/blob parity for all seven original/rewritten
+  branch projections and the active pre-adaptation baseline.
+- [ ] **P5.2** Reconcile retained-content commits and pruned mappings; verify
+  ancestry, historical SHA references, and approved paths in all reachable trees.
+- [ ] **P5.3** Run repository integrity/ref checks, inspect gitlinks/LFS
+  dependencies, and record object counts and packed size.
+- [ ] **P5.4** Run and record the agreed Bash offline contracts in isolation.
+- [ ] **P5.5** Run and record the agreed PowerShell offline contracts in isolation.
+- [ ] **P5.6** Verify install/uninstall, upgrade/downgrade, rollback, version
+  mutation, installed-only validation, and the new checkout's `sourceCommit`.
+- [ ] **P5.7** Complete agreed platform checks and any separately authorized
+  live smoke campaign; explicitly record checks not run.
+- [ ] **P5.8** Confirm all required gates pass and record publication approval,
+  repository visibility, and the exact approved branch/tag ref ledger.
+
+### Phase 6: publication and acceptance
+
+- [ ] **P6.1** Confirm the destination name is available and create the empty
+  independent repository with the approved visibility.
+- [ ] **P6.2** Configure only the destination checkout's remote, review the
+  dry-run push, and publish `main`, approved archival branches, and the baseline
+  tag using explicit refspecs.
+- [ ] **P6.3** Set default `main` and required repository settings; verify the
+  destination is not a fork.
+- [ ] **P6.4** Validate a fresh GitHub clone, repeat the required content/history
+  and runtime checks, and confirm CI on the exact published SHA.
+- [ ] **P6.5** Configure agreed protections and permissions; make the repository
+  public only if explicitly approved after content/provenance review.
+- [ ] **P6.6** Verify every acceptance criterion and source preservation; record
+  final destination SHA, evidence locations, and human acceptance.
+- [ ] **P6.7** Record the disposition of optional old-fork discovery links and
+  private rollback artifacts without deleting or rewriting source history.
+
+### Checkpoint notes
+
+No execution checkpoints yet. During implementation, append dated notes here
+using this format:
+
+```text
+Timestamp:
+Step IDs completed or invalidated:
+Commands/results and evidence paths:
+Approvals or decisions:
+Blockers:
+Next step:
+```
+
 ## Findings from the source checkout
 
 Inspection date: October 19, 2026. The checkout was clean before this plan was
