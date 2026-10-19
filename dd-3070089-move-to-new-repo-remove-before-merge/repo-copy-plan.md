@@ -124,15 +124,15 @@ Perform migration work outside this checkout and all existing worktrees.
 Use a new, explicitly named work directory and keep private evidence outside
 the repository that will be published.
 
-The following Bash fragments describe execution after approval. Replace
-`/absolute/path/to/new-migration-work-directory` with a new unused path; stop
-on errors. No fragment is intended to be run independently of its preceding
-gates.
+The following Bash fragments describe execution after approval. Use
+`$HOME/workareas/shepherd-task-migration-work-directory` as the migration work
+directory. This path must not already exist; stop if it exists or any command
+fails. No fragment is intended to be run independently of its preceding gates.
 
 ```bash
 set -euo pipefail
 SOURCE=/home/edburns/workareas/awesome-copilot-03
-WORK=/absolute/path/to/new-migration-work-directory
+WORK="$HOME/workareas/shepherd-task-migration-work-directory"
 test ! -e "$WORK"
 mkdir -p "$WORK/evidence"
 
