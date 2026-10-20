@@ -827,7 +827,19 @@ copilot --sandbox -p "Run the full test suite and fix any failures"
 copilot --no-sandbox -p "Set up development environment with system tools"
 ```
 
-These flags apply only to the current invocation — your persisted sandbox preference remains unchanged.
+These flags apply only to the current invocation — your persisted sandbox preference remains unchanged. In the interactive CLI, `/sandbox` can likewise keep sandboxing enabled for the current session without enabling it globally.
+
+The `--trust-folder` flag trusts the working folder for a one-off prompt-mode session started with `-p` or piped stdin, so automated runs don't stop on the folder trust prompt. Use it only for directories you control:
+
+```bash
+copilot --trust-folder -p "Summarize the open TODOs in this repo"
+```
+
+The `--disable-client-telemetry` flag turns off client telemetry uploads from the CLI for that invocation.
+
+**`assistedApprovalInstructions` setting**: When using Assisted permissions, set this in `/config` or `/settings` to give the permission judge plain-language guidance (for example, which kinds of commands your team considers safe) that it uses when deciding whether to confirm an action.
+
+**`showReasoning` setting**: `/config` and `/settings` can set and unset `showReasoning` to control whether the model's reasoning is displayed.
 
 **`allowDevToolAccess` sandbox setting**: When the sandbox is enabled, this setting grants sandboxed builds access to toolchain caches, registries, config files, and installs (npm cache, pip cache, Go module cache, etc.) so builds work without extra setup. Set it to `false` in `/settings` to opt out if you want a stricter sandbox that blocks all toolchain access. See [Compatibility and Migration Notes](#compatibility-and-migration-notes) if you have an older `allowDevToolCaches` value configured.
 
