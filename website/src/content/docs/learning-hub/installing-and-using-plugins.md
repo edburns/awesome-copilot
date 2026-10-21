@@ -3,7 +3,7 @@ title: 'Installing and Using Plugins'
 description: 'Learn how to find, install, and manage plugins that extend GitHub Copilot CLI with reusable agents, skills, hooks, and integrations.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-09-22
+lastUpdated: 2026-10-21
 relatedArticles:
   - ./building-custom-agents.md
   - ./creating-effective-skills.md
@@ -172,6 +172,8 @@ With this in place, team members automatically get the `my-org-plugins` marketpl
 ```
 
 This is useful for internal marketplaces where you want every team member to always be running the latest published plugin versions.
+
+Plugin entries in a marketplace can also use `git-subdir` sources, which point at a plugin that lives in a subdirectory of a Git repository (useful for monorepos), and plugin descriptions can be long.
 
 ### Pinning a Marketplace to a Specific Commit
 
