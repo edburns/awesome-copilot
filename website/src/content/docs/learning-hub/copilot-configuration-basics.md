@@ -932,6 +932,14 @@ Run `/config` to open a dedicated sidebar configuration screen inside the CLI, g
 
 Session and memory import commands accept the semantic JSONL interchange format, making it possible to bring saved session history or memory entries into Copilot CLI from an external export rather than starting from scratch.
 
+### Guiding Assisted Permissions
+
+In auto (LLM-judged) approval mode, set the `assistedApprovalInstructions` setting to give the judge your own guidance — for example, which kinds of commands your team always wants confirmed. Extension capability requests are not judged by this model; they always require explicit approval.
+
+### One-Off Prompt-Mode Runs
+
+When you run a single prompt with `-p` (or pipe input via stdin), pass `--trust-folder` to trust the current folder for that run only, and `--disable-client-telemetry` to turn off client telemetry uploads from the CLI.
+
 ### Command-Line Parsing
 
 Command-line parsing is handled by a Rust-based grammar that mirrors what the CLI actually parses, which also generates shell completions directly from that grammar — so `copilot <TAB>` offers root flags alongside subcommands, and each subcommand only shows its own options. See [Compatibility and Migration Notes](#compatibility-and-migration-notes) for behavior changes from the previous Commander-based parser.
