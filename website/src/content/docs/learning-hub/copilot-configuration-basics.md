@@ -936,6 +936,28 @@ Session and memory import commands accept the semantic JSONL interchange format,
 
 Command-line parsing is handled by a Rust-based grammar that mirrors what the CLI actually parses, which also generates shell completions directly from that grammar — so `copilot <TAB>` offers root flags alongside subcommands, and each subcommand only shows its own options. See [Compatibility and Migration Notes](#compatibility-and-migration-notes) for behavior changes from the previous Commander-based parser.
 
+### Assisted Permissions
+
+Assisted Permissions is a permission mode in which a judge reviews each approval request: safe actions proceed without a prompt, and riskier ones still ask you to confirm. It is available without enabling experimental mode. Use the `assistedApprovalInstructions` setting to give the judge guidance about what your team considers safe or unsafe. Enterprise-managed "ask" rules still apply, and extension capability requests always use explicit approval rather than the judge.
+
+### Prompt-Mode and Privacy Flags
+
+- `--trust-folder` trusts the current folder for a one-off prompt-mode session started with `-p` or piped stdin, so scripted runs don't stall on the folder-trust prompt.
+- `--disable-client-telemetry` turns off client telemetry uploads from the CLI.
+
+```bash
+copilot --trust-folder -p "Summarize the open TODOs in this repo"
+copilot --disable-client-telemetry
+```
+
+### Installing Plugins and Skills from Links
+
+Verified skills and plugins can be installed from a GitHub install link with `copilot plugin install "ghapp://air/install?..."`. Plugin marketplaces can also point at a subdirectory of a Git repository using a `git-subdir` source, and Team-assigned plugins install from Team-defined GitHub marketplaces. Plugins from trusted repositories install and update automatically before chat runs.
+
+### Code Search and Instruction Discovery
+
+Semantic code search is on by default for online sessions. Path-specific instruction files in the repository's `.github/instructions` folder are applied automatically when the agent reads or edits a matching file.
+
 ## Compatibility and Migration Notes
 
 This section collects settings and behaviors that **changed or were renamed** in past releases. Check here if something you configured previously stopped working, or if you're auditing an older config file — everything above describes current behavior and does not require reading this section first.
@@ -950,6 +972,8 @@ This section collects settings and behaviors that **changed or were renamed** in
 - **Auto allow-all mode requires experimental mode.** The previous `AUTO_APPROVAL` environment variable approach was removed in favor of `/experimental on` (or `--experimental`) plus `/allow-all auto`.
 - **Ctrl+D no longer queues messages.** It now uses its default terminal behavior; use **Ctrl+Q** or **Ctrl+Enter** to queue a message instead.
 - **The CLI's command-line parser was rewritten** (moving off Commander to a Rust-based grammar). As a result, some error and help wording changed, `copilot login --host` now works correctly, and `--max-autopilot-continues` no longer accepts scientific notation as a value.
+- **The built-in `browser` plugin was renamed `browser-use`.** Existing browser plugin preferences keep working after upgrade.
+- **Legacy `--remote`/`--no-remote` startup flags were retired** in favor of clearer hosting and connection flags; update scripts that used them.
 - **Model availability changes over time.** The model picker periodically retires older models; if a model you previously pinned in a custom agent or config disappears from `/model`, switch to a current model or a [family alias](#model-picker) instead.
 
 ## Common Questions
